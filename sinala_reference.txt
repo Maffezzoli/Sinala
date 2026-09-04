@@ -1,0 +1,86 @@
+SINALA: Sistema Multimodal de Reconhecimento de Libras e Síntese em Tempo Real para Plataformas de Videoconferência
+1. Visão Geral e Identidade do Projeto
+O SINALA é uma solução de tecnologia assistiva baseada em Visão Computacional, Aprendizado Profundo e Síntese de Voz (Text-to-Speech), projetada para traduzir a Língua Brasileira de Sinais (Libras) em português falado e legendado durante chamadas virtuais (Google Meet, Microsoft Teams, Zoom).
+Nota de Escopo: O sistema é explicitamente voltado para o reconhecimento de sinalização isolada/pausada (e não para tradução contínua/fluente irrestrita), priorizando precisão semântica e viabilidade computacional em tempo real.
+Identidade Visual
+Nome do Projeto: SINALA
+Estilo: Minimalismo Clean (Light Mode)
+Cores Principais: Fundo Branco Gelo (#F8FAFC), Landmarks em Azul Cobalto (#0052FF), Tipografia em Azul Petróleo Profundo (#0A192F).
+Símbolo: Malha geométrica simplificada baseada em landmarks articulares (visão computacional/IA). 
+
+2. Pilares de Pesquisa e Frentes Estratégicas
+Frente 1: Fusão Manual + Facial via MediaPipe (Passo Mais Viável)
+Recorte & Objetivo: Em vez de focar diretamente em um "sistema completo", testar a reprodutibilidade da classificação no Grammatical Facial Expressions (GFE) Dataset (Freitas et al., 2014; Walawalkar, 2017) utilizando landmarks do MediaPipe em vídeo RGB convencional em substituição a sensores de profundidade (Kinect), mais caros e obsoletos.
+Pergunta de Pesquisa: É possível manter níveis competitivos de acurácia (~98%) utilizando apenas câmeras RGB padrão e extração leve de landmarks?
+Comparação Obrigatória: Benchmark direto contra os resultados publicados na literatura nas mesmas categorias gramaticais (afirmativa, interrogativas, negativa, condicional, tópico, etc.).
+Experimento Mínimo (Ablation Study):
+1. Apenas Mãos
+2. Apenas Face
+3. Mãos + Face (Fusão Multimodal)
+Objetivo: Demonstrar empiricamente o ganho estatístico real proporcionado pelas Expressões Não Manuais (ENMs).
+Viabilidade e Escopo: Execução em poucas semanas sobre dataset público já consolidado, sem necessidade de coleta primária inicial.
+Venues Alvo: SIBGRAPI (Workshop) ou STIL.
+Frente 2: Engenharia de Sistemas & Avaliação Decomposta de Latência
+Recorte & Objetivo: Não posicionar a "câmera virtual" como novidade em si (conceito explorado na literatura desde 2023), mas oferecer uma avaliação empírica rigorosa e decomposta estágio a estágio do pipeline de ponta a ponta.
+Comparação Obrigatória: 
+Citação e confronto com os trabalhos de arquitetura virtual de 2023.
+Contextualização com o estado da arte recente em tradução de sinais (estudos de 2026 relatam latências médias de 1,873s caindo para 1,354s pós-otimização, com p95 de 2,919s para 2,130s), demonstrando que um sistema com vocabulário focado e sinalização pausada atinge patamares inferiores a 300 ms.
+Métricas & Avaliação: 
+Latência p50 e p95 decomposta por estágio: Captura → Extração de Landmarks → Classificação Temporal → Síntese TTS → Disparo na Saída Virtual.
+Taxa de falso-disparo do mecanismo de debounce.
+Degradação de desempenho e estabilidade sob restrição de hardware (CPU de baixo consumo).
+Componentes: Reaproveitamento de classificadores leves focando a contribuição na robustez e integração de engenharia.
+Venues Alvo: WVC ou trilhas de Sistemas / Interação Humano-Computador (IHC).
+Frente 3: Robustez e Resiliência a Oclusões
+Recorte & Objetivo: Comparar sistematicamente estratégias de mitigação e tratamento de oclusões (interpolação temporal, máscaras de confiança, redes neurais recorrentes robustas) aproveitando diretamente os scores de visibilidade e confiança fornecidos pelo MediaPipe.
+Datasets: Simulação artificial e controlada de oclusões sobre bases consolidadas como MINDS-Libras ou LIBRAS-UFOP (prática padrão diante da escassez de dados anotados com oclusões naturais).
+Métricas: Degradação de acurácia com e sem tratamento em múltiplos níveis graduais de oclusão (0%, 20%, 40%, 60%).
+Venues Alvo: SIBGRAPI ou WVC.
+3. Pipeline Arquitetural e Fluxo de Dados
+
+[Webcam Local (RGB)]
+       │
+       ▼
+[MediaPipe Holistic] ──> Landmarks (Mãos: 42 pts | Rosto: 468 pts | Pose: 33 pts + Confidence)
+       │
+       ▼
+[Pré-processamento] ──> Normalização de Escala + Tratamento de Oclusões (Scores de Visibilidade)
+       │
+       ▼
+[Classificador Sequencial] ──> LSTM / GRU / 1D-CNN (Matriz Temporal T x Features)
+       │
+       ▼
+[Módulo de Decisão] ──> Buffer de Estabilidade + Filtro Anti-Repetição (Debounce)
+       │
+       ├───────────────────────────────┬───────────────────────────────┐
+       ▼                               ▼                               ▼
+[Legenda em Vídeo (OpenCV)]    [Síntese de Voz (TTS Local)]    [Feedback Visual de Status]
+       │                               │
+       ▼                               ▼
+[Câmera Virtual (pyvirtualcam)]   [Microfone Virtual (VB-Cable/sounddevice)]
+       │                               │
+       └───────────────┬───────────────┘
+                       ▼
+       [Google Meet / Microsoft Teams / Zoom]
+4. Trabalhos Relacionados e Metodologia Experimental
+Trabalhos Relacionados Essenciais
+Expressões Não Manuais e GFE Dataset: Trabalhos seminais de Freitas et al. (2014) e Walawalkar (2017) sobre desambiguação sintática via marcadores faciais em Libras.
+Pipelines de Câmera e Áudio Virtual: Sistemas de integração em tempo real para videoconferência desenvolvidos a partir de 2023, servindo de linha de base para a engenharia de software do SINALA.
+Benchmarks de Latência: Estudos recentes de tradução de sinais (2026) que balizam as medições de latência ponta a ponta.
+Checklist Transversal de Rigor Metodológico
+Delimitação Explícita no Resumo: Definir com clareza o escopo de sinalização isolada/pausada, evitando expectativas de tradução fluente contínua irrestrita.
+Ablation Studies Obrigatórios: Apresentar obrigatoriamente estudos de ablação em todas as publicações para sustentar a hipótese de ganho pela fusão multimodal.
+Contextualização de Latência: Sempre ancorar o target de latência (< 300 ms) em comparação direta com os dados da literatura recente (ex: 1,35s - 2,13s em tradução contínua).
+Revisão e Correção Bibliográfica: Garantir conformidade rigorosa em todas as citações e metadados.
+5. Referências Bibliográficas e Fontes
+Cerna, L. R., Cardenas, E. E., Miranda, D. R., Menotti, D., & Camara-Chavez, G. (2021). A multimodal LIBRAS-UFOP Brazilian sign language dataset of minimal pairs using a Microsoft Kinect sensor. Expert Systems with Applications, 167, 114179. DOI: 10.1016/j.eswa.2020.114179
+Freitas, F. A., Barbosa, F. V., & Peres, S. M. (2014). Grammatical Facial Expressions [Dataset]. UCI Machine Learning Repository. DOI: 10.24432/C59S3R
+Grishchenko, I., & Bazarevsky, V. (2020). MediaPipe Holistic — Simultaneous Face, Hand and Pose Prediction, on Device. Google Research Blog. Sem DOI (post técnico). Disponível em: https://research.google/blog/mediapipe-holistic-simultaneous-face-hand-and-pose-prediction-on-device/
+Hochreiter, S., & Schmidhuber, J. (1997). Long Short-Term Memory. Neural Computation, 9(8), 1735–1780. DOI: 10.1162/neco.1997.9.8.1735
+Koller, O. (2020). Quantitative Survey of the State of the Art in Sign Language Recognition. arXiv preprint. DOI: 10.48550/arXiv.2008.09918
+Lugaresi, C., Tang, J., Nash, H., et al. (2019). MediaPipe: A Framework for Building Perception Pipelines. arXiv preprint. DOI: 10.48550/arXiv.1906.08172
+Quadros, R. M. de, & Karnopp, L. B. (2004). Língua de Sinais Brasileira: Estudos Linguísticos. Porto Alegre: Artmed. ISBN 978-85-363-0308-6 (livro; sem DOI).
+Rezende, T. M., Almeida, S. G. M., & Guimarães, F. G. (2021). Development and validation of a Brazilian sign language database for human gesture recognition [Base de dados MINDS-Libras, UFMG]. Neural Computing and Applications, 33(16), 10449–10467. DOI: 10.1007/s00521-021-05802-4
+Walawalkar, D. (2017). Grammatical Facial Expression Recognition Using Customized Deep Neural Network Architecture. arXiv preprint. DOI: 10.48550/arXiv.1711.06303
+
+

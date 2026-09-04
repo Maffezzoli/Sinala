@@ -1,0 +1,41 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage[alf]{abntex2cite}
+
+\title{SINALA: Uma Abordagem Incremental do Reconhecimento de Sinais Isolados de Libras à Tradução em Tempo Real}
+\author{Projeto SINALA}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introdução}
+
+A Língua Brasileira de Sinais (Libras), reconhecida legalmente pela Lei Federal nº 10.436/2002 como meio legítimo de comunicação e expressão, constitui o principal elemento de identidade e interação social de aproximadamente 10 milhões de pessoas com deficiência auditiva no Brasil. Não obstante o amparo normativo, a comunidade surda enfrenta rotineiramente severas barreiras comunicacionais no acesso a serviços básicos de saúde, educação, atendimento público e esferas corporativas. Esse distanciamento não decorre unicamente da escassez de intérpretes humanos qualificados, mas fundamentalmente da natureza linguística da Libras, que se estrutura como uma língua visuoespacial independente, dotada de gramática, morfologia e sintaxe próprias, distintas do português oral. Consequentemente, a construção de pontes comunicativas efetivas entre surdos e ouvintes demanda o desenvolvimento de tecnologias assistivas capazes de interpretar sinais visuais e convertê-los em informação textual ou falada de modo acessível, fidedigno e promotor de autonomia social \cite{dasilva2020health,passos2021gei}.
+
+No âmbito tecnológico, os primeiros sistemas de reconhecimento de sinais baseavam-se frequentemente em hardware intrusivo, tais como luvas instrumentadas com sensores de flexão ou sensores inerciais acoplados ao corpo. Embora forneçam leituras cinemáticas diretas, essas abordagens impõem custos elevados, demandam calibração frequente e geram desconforto físico, inviabilizando sua adoção prática em larga escala em dispositivos cotidianos. Por outro lado, as soluções de visão computacional baseadas puramente em sequências de vídeo RGB enfrentam desafios como variações severas de iluminação, oclusões parciais das mãos, ruídos de fundo e expressiva variabilidade intra e inter-sinalizador na velocidade e na geometria dos movimentos. Nesse contexto, a extração de estruturas anatômicas essenciais através de pontos-chave (\textit{landmarks}) espaciais em tempo real, aliada à modelagem de trajetórias temporais por redes neurais recorrentes leves (como Gated Recurrent Units - GRU), consolidou-se como uma frente de pesquisa promissora para conciliar precisão discriminativa e baixo custo computacional \cite{rezende2021minds,rego2025fft}. A proposta do SINALA fundamenta-se nessa direção por meio de uma abordagem estritamente incremental: foca-se, em nível inicial, no reconhecimento robusto de sinais isolados de Libras sob regime de validação rigorosa entre indivíduos distintos e estabilização temporal de predições em câmera convencional, estabelecendo as bases computacionais e metodológicas para a progressão contínua em direção à tradução contextual em tempo real.
+
+\section{Revisão de Literatura}
+
+\subsection{Nível 1: Reconhecimento de Sinais Isolados de Libras}
+
+No cenário nacional de visão computacional aplicada a Libras, \citeonline{furtado2023markerless} investigam a dispensa completa de dispositivos vestíveis, propondo um sistema interativo e sem marcadores para a identificação visual do alfabeto manual por meio de descritores de contorno. A substituição de luvas ou sensores dedicados por câmeras comuns representa um passo fundamental para a usabilidade diária, embora o alfabeto estático não capture a totalidade dos movimentos que caracterizam a comunicação cotidiana. Expandindo o domínio para além de gestos estáticos, \citeonline{feliciano2023complex} desenvolvem uma metodologia para o reconhecimento de palavras de Libras tanto estáticas quanto dinâmicas em ambientes com fundos complexos e não controlados. Combinando o framework MediaPipe para detecção articular, OpenCV e redes neurais em TensorFlow/Keras, os autores evidenciam que o pré-processamento baseado em coordenadas articulares ameniza substancialmente a sensibilidade a ruídos de cena e iluminação. Esses estudos corroboram a decisão arquitetural do SINALA de operar sobre dados puramente visuais de câmeras convencionais, processando estruturas articuladas em tempo real.
+
+A relevância da modelagem temporal e o impacto das discrepâncias cinemáticas entre diferentes usuários são aprofundados por \citeonline{arcanjo2024dtw}. Os autores extraem \textit{landmarks} de mãos e tronco via MediaPipe, calculam ângulos articulares tridimensionais e realizam a classificação temporal sobre o dataset público MINDS-Libras utilizando o algoritmo Fast Dynamic Time Warping (FastDTW). O estudo revelou que a validação clássica por divisão aleatória (75\% para treino e 25\% para teste) atingiu acurácia de $0{,}98 \pm 0{,}01$, ao passo que a avaliação rigorosa por sinalizador não visto (\textit{Leave-One-Person-Out Cross-Validation} - LOOCV) obteve $0{,}86 \pm 0{,}08$ (F1 de $0{,}87$). Esse resultado demonstra empiricamente que avaliar modelos com amostras do mesmo sinalizador em ambos os conjuntos gera uma estimativa artificialmente inflada. Para o projeto SINALA, essa contribuição estabelece como diretriz inegociável a segregação estrita de sinalizadores entre partições de treino e teste, assegurando que o desempenho mensurado reflita capacidade genuína de generalização para novos usuários.
+
+\subsection{Nível 2: Transição para Modelagem Espaço-Temporal e Tradução}
+
+Buscando contornar as limitações de representações puramente bidimensionais sem recorrer a sensores de profundidade físicos, \citeonline{castro2023multistream} propõem uma arquitetura baseada em redes convolucionais 3D (\textit{multi-stream} 3D CNN) integrada à geração artificial de mapas de profundidade via redes generativas. O modelo combina fluxos visuais de mãos, face e velocidades articulares, alcançando acurácia de $0{,}91 \pm 0{,}07$ e F1-score de $0{,}90 \pm 0{,}08$ em vídeos de Libras. De forma análoga, \citeonline{rodrigues2025dynamic} analisam a classificação de sinais dinâmicos avaliando comparativamente cinco arquiteturas convolucionais clássicas (AlexNet, DenseNet121, InceptionV3, ResNet18 e VGG16). A ResNet18 obteve o desempenho superior (74,29\% de acurácia), evidenciando que a capacidade de absorver variações na trajetória e velocidade dos sinais constitui o principal gargalo para elevar o vocabulário reconhecido. Ambas as investigações reforçam que o tratamento do dinamismo temporal é imperativo para que o sistema transite de um classificador isolado para o reconhecimento contínuo.
+
+Por fim, a transição entre a identificação de gestos e a geração de linguagem oral inteligível exige uma camada de interpretação semântica que una o domínio visual ao textual. Nesse contexto, \citeonline{pereira2026semantic} investigam o mapeamento de um espaço vetorial semântico compartilhado entre sentenças em português brasileiro e sequências de glosas em Libras. Utilizando uma arquitetura siamesa baseada no modelo de linguagem BERTimbau e treinada via aprendizado contrastivo com pares negativos controlados, o trabalho demonstra a viabilidade do alinhamento semântico mesmo sobre corpora paralelos de dimensões restritas. O conjunto da literatura analisada fundamenta a estratégia de desenvolvimento em níveis adotada no SINALA: consolida-se primeiramente o reconhecimento de sinais isolados com robustez e invariância a sinalizadores; expande-se a segmentação contínua de movimentos articulados; e, por fim, acopla-se o mapeamento semântico para a síntese de sentenças em português em tempo real.
+
+\bibliographystyle{abntex2-alf}
+\bibliography{references}
+
+\end{document}

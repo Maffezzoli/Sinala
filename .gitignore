@@ -1,0 +1,41 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Generated datasets, models, and checkpoints
+/data/
+/artifacts/
+/models/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+~$*.pptx
+
+# LaTeX build artifacts
+/materiais_academicos/artigo/*.aux
+/materiais_academicos/artigo/*.bbl
+/materiais_academicos/artigo/*.bcf
+/materiais_academicos/artigo/*.blg
+/materiais_academicos/artigo/*.fdb_latexmk
+/materiais_academicos/artigo/*.fls
+/materiais_academicos/artigo/*.log
+/materiais_academicos/artigo/*.out
+/materiais_academicos/artigo/*.run.xml
+/materiais_academicos/artigo/*.synctex.gz
+/materiais_academicos/artigo/*.toc

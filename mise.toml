@@ -1,0 +1,7 @@
+[tasks.check]
+description = "Executa lint, formatação e testes"
+run = [
+    "uv run ruff check .",
+    "uv run ruff format --check .",
+    "uv run pytest",
+]
