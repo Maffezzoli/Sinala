@@ -7,8 +7,10 @@ import numpy as np
 from loguru import logger
 
 from sinala.config.pipeline_settings import PipelineSettings
+from sinala.data.alphabet_dataset import LibrasAlphabetDataset, download_alphabet_dataset
 from sinala.data.catalog import canonicalize_label, catalog_dataset, summarize_samples
 from sinala.data.dataset_sample import DatasetSample
+from sinala.data.greetings_dataset import download_greetings_dataset
 from sinala.data.hand_landmark_extractor import HandLandmarkExtractor
 from sinala.data.landmark_augmenter import LandmarkAugmenter
 from sinala.data.landmark_dataset import LandmarkSequenceDataset
@@ -16,9 +18,13 @@ from sinala.data.landmark_preprocessor import LandmarkPreprocessor
 from sinala.data.minds_downloader import MindsDatasetDownloader
 from sinala.data.model_asset import download_hand_model
 from sinala.data.splits import build_signer_split
+from sinala.model.alphabet_classifier import save_alphabet_checkpoint, train_alphabet_model
+from sinala.model.greetings_training import train_greetings_checkpoint
 from sinala.model.gru_sign_classifier import GRUSignClassifier
 from sinala.model.training import evaluate_model, resolve_device, save_checkpoint, set_seed, train_model
+from sinala.runtime.alphabet_camera_app import AlphabetCameraApp
 from sinala.runtime.realtime_caption_app import RealtimeCaptionApp
+from sinala.runtime.unified_camera_app import UnifiedCameraApp
 
 
 def _csv_values(value: str) -> list[str]:
@@ -260,6 +266,94 @@ def _camera(args: argparse.Namespace) -> None:
     app.run()
 
 
+def _download_alphabet(args: argparse.Namespace) -> None:
+    path = download_alphabet_dataset(args.output)
+    print(f"Dataset de alfabeto salvo em: {path}")
+
+
+def _download_greetings(args: argparse.Namespace) -> None:
+    landmarks_dir, csv_path = download_greetings_dataset(
+        target_video_dir=args.video_dir,
+        target_landmarks_dir=args.output,
+        model_asset_path=args.model_asset,
+        sequence_length=args.sequence_length,
+    )
+    print(f"Dataset de saudações processado com sucesso em: {csv_path}")
+
+
+def _train_alphabet(args: argparse.Namespace) -> None:
+    logger.info(f"Carregando dataset de dactilologia de {args.data_dir}...")
+    train_dataset = LibrasAlphabetDataset(args.data_dir, split="train", train_ratio=args.train_ratio, seed=args.seed)
+    val_dataset = LibrasAlphabetDataset(args.data_dir, split="val", train_ratio=args.train_ratio, seed=args.seed)
+    logger.info(f"Amostras de treino: {len(train_dataset)} | Validação/Teste: {len(val_dataset)}")
+
+    device = resolve_device(args.device)
+    model, history = train_alphabet_model(
+        train_dataset=train_dataset,
+        val_dataset=val_dataset,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        device=str(device),
+    )
+
+    final_acc = history["val_accuracy"][-1] if history["val_accuracy"] else 0.0
+    logger.info(f"Treinamento concluído. Acurácia final de validação: {final_acc * 100:.2f}%")
+
+    checkpoint_path = Path(args.output_checkpoint)
+    metadata = {
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "learning_rate": args.learning_rate,
+        "train_samples": len(train_dataset),
+        "val_samples": len(val_dataset),
+        "final_accuracy": final_acc,
+    }
+    save_alphabet_checkpoint(model, checkpoint_path, metadata)
+    print(f"Modelo do alfabeto salvo em {checkpoint_path}")
+
+
+def _train_greetings(args: argparse.Namespace) -> None:
+    result = train_greetings_checkpoint(
+        manifest_path=args.manifest,
+        checkpoint_path=args.checkpoint,
+        epochs=args.epochs,
+        augment_copies=args.augment_copies,
+        batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        device=resolve_device(args.device),
+    )
+    metrics = result["validation_metrics"]
+    print(f"Modelo conversacional salvo em {args.checkpoint}; macro-F1 validação={metrics['macro_f1']:.4f}")
+
+
+def _camera_alphabet(args: argparse.Namespace) -> None:
+    app = AlphabetCameraApp(
+        checkpoint_path=Path(args.checkpoint),
+        model_asset_path=Path(args.model_asset),
+        camera_index=args.camera_index,
+        confidence_threshold=args.confidence_threshold,
+        stability_frames=args.stability_frames,
+        device=resolve_device(args.device),
+    )
+    app.run()
+
+
+def _camera_unified(args: argparse.Namespace) -> None:
+    app = UnifiedCameraApp(
+        greetings_checkpoint_path=args.greetings_checkpoint,
+        alphabet_checkpoint_path=args.alphabet_checkpoint,
+        model_asset_path=args.model_asset,
+        camera_index=args.camera_index,
+        alphabet_threshold=args.alphabet_threshold,
+        greetings_threshold=args.greetings_threshold,
+        stability_frames=args.stability_frames,
+        sequence_length=args.sequence_length,
+        device=resolve_device(args.device),
+    )
+    app.run()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sinala")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -324,6 +418,59 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_parser.add_argument("--model-asset", default="models/hand_landmarker.task")
     camera_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
     camera_parser.set_defaults(handler=_camera)
+
+    download_alphabet_parser = subparsers.add_parser("download-alphabet")
+    download_alphabet_parser.add_argument("--output", default="data/raw/alphabet")
+    download_alphabet_parser.set_defaults(handler=_download_alphabet)
+
+    train_alphabet_parser = subparsers.add_parser("train-alphabet")
+    train_alphabet_parser.add_argument("--data-dir", default="data/raw/alphabet")
+    train_alphabet_parser.add_argument("--epochs", type=int, default=10)
+    train_alphabet_parser.add_argument("--batch-size", type=int, default=64)
+    train_alphabet_parser.add_argument("--learning-rate", type=float, default=0.001)
+    train_alphabet_parser.add_argument("--train-ratio", type=float, default=0.8)
+    train_alphabet_parser.add_argument("--seed", type=int, default=42)
+    train_alphabet_parser.add_argument("--output-checkpoint", default="artifacts/sinala_alphabet.pt")
+    train_alphabet_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
+    train_alphabet_parser.set_defaults(handler=_train_alphabet)
+
+    camera_alphabet_parser = subparsers.add_parser("camera-alphabet")
+    camera_alphabet_parser.add_argument("--checkpoint", default="artifacts/sinala_alphabet.pt")
+    camera_alphabet_parser.add_argument("--model-asset", default="models/hand_landmarker.task")
+    camera_alphabet_parser.add_argument("--confidence-threshold", type=float, default=0.70)
+    camera_alphabet_parser.add_argument("--stability-frames", type=int, default=12)
+    camera_alphabet_parser.add_argument("--camera-index", type=int, default=0)
+    camera_alphabet_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
+    camera_alphabet_parser.set_defaults(handler=_camera_alphabet)
+
+    greetings_parser = subparsers.add_parser("download-greetings")
+    greetings_parser.add_argument("--video-dir", default="data/raw/greetings/videos")
+    greetings_parser.add_argument("--output", default="data/landmarks-greetings")
+    greetings_parser.add_argument("--model-asset", default="models/hand_landmarker.task")
+    greetings_parser.add_argument("--sequence-length", type=int, default=32)
+    greetings_parser.set_defaults(handler=_download_greetings)
+
+    unified_camera_parser = subparsers.add_parser("camera-unified")
+    unified_camera_parser.add_argument("--greetings-checkpoint", default="artifacts/sinala_greetings.pt")
+    unified_camera_parser.add_argument("--alphabet-checkpoint", default="artifacts/sinala_alphabet.pt")
+    unified_camera_parser.add_argument("--model-asset", default="models/hand_landmarker.task")
+    unified_camera_parser.add_argument("--alphabet-threshold", type=float, default=0.70)
+    unified_camera_parser.add_argument("--greetings-threshold", type=float, default=0.65)
+    unified_camera_parser.add_argument("--stability-frames", type=int, default=12)
+    unified_camera_parser.add_argument("--sequence-length", type=int, default=32)
+    unified_camera_parser.add_argument("--camera-index", type=int, default=0)
+    unified_camera_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
+
+    train_greetings_parser = subparsers.add_parser("train-greetings")
+    train_greetings_parser.add_argument("--manifest", default="data/landmarks-greetings/manifest.jsonl")
+    train_greetings_parser.add_argument("--checkpoint", default="artifacts/sinala_greetings.pt")
+    train_greetings_parser.add_argument("--epochs", type=int, default=30)
+    train_greetings_parser.add_argument("--augment-copies", type=int, default=40)
+    train_greetings_parser.add_argument("--batch-size", type=int, default=16)
+    train_greetings_parser.add_argument("--learning-rate", type=float, default=0.001)
+    train_greetings_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
+    train_greetings_parser.set_defaults(handler=_train_greetings)
+    unified_camera_parser.set_defaults(handler=_camera_unified)
     return parser
 
 

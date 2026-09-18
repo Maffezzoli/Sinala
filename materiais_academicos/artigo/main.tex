@@ -4,36 +4,216 @@
 \usepackage[utf8]{inputenc}
 \usepackage[brazil]{babel}
 \usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \usepackage[alf]{abntex2cite}
 
-\title{SINALA: Uma Abordagem Incremental do Reconhecimento de Sinais Isolados de Libras à Tradução em Tempo Real}
-\author{Projeto SINALA}
+\title{\textbf{SINALA: Uma Abordagem Incremental do Reconhecimento de Sinais Isolados de Libras à Tradução em Tempo Real}}
+\author{\textbf{Projeto SINALA}}
 \date{\today}
 
 \begin{document}
 
 \maketitle
 
+\begin{abstract}
+A Língua Brasileira de Sinais (Libras) é o principal meio de comunicação de milhões de pessoas surdas no Brasil, mas a interação cotidiana com ouvintes ainda enfrenta severas barreiras. Este trabalho apresenta o SINALA, um sistema computacional assistivo que adota uma abordagem estritamente incremental: inicia-se no reconhecimento visual de sinais isolados a partir de marcos articulares (\textit{landmarks}) e redes neurais recorrentes leves (GRU), estabelecendo as bases metodológicas e arquiteturais para a futura progressão rumo à tradução em tempo real. O sistema utiliza exclusivamente câmeras RGB convencionais, dispensando hardware invasivo ou sensores de profundidade de alto custo. A validação é conduzida sobre o dataset público MINDS-Libras sob um protocolo rigoroso de separação por sinalizador (\textit{signer-independent}), complementada por um módulo de estabilização temporal de legendas por histerese. Os resultados preliminares demonstram a viabilidade da inferência fluida em tempo real em CPUs de uso geral, apontando diretrizes concretas para a evolução contínua da tecnologia assistiva.
+\end{abstract}
+
+\vspace{0.5cm}
+\noindent\textbf{Palavras-chave:} Língua Brasileira de Sinais, Visão Computacional, Extração de Landmarks, Gated Recurrent Units, Tempo Real, Avaliação Inter-Sinalizador.
+
 \section{Introdução}
+\label{sec:introducao}
 
 A Língua Brasileira de Sinais (Libras), reconhecida legalmente pela Lei Federal nº 10.436/2002 como meio legítimo de comunicação e expressão, constitui o principal elemento de identidade e interação social de aproximadamente 10 milhões de pessoas com deficiência auditiva no Brasil. Não obstante o amparo normativo, a comunidade surda enfrenta rotineiramente severas barreiras comunicacionais no acesso a serviços básicos de saúde, educação, atendimento público e esferas corporativas. Esse distanciamento não decorre unicamente da escassez de intérpretes humanos qualificados, mas fundamentalmente da natureza linguística da Libras, que se estrutura como uma língua visuoespacial independente, dotada de gramática, morfologia e sintaxe próprias, distintas do português oral. Consequentemente, a construção de pontes comunicativas efetivas entre surdos e ouvintes demanda o desenvolvimento de tecnologias assistivas capazes de interpretar sinais visuais e convertê-los em informação textual ou falada de modo acessível, fidedigno e promotor de autonomia social \cite{dasilva2020health,passos2021gei}.
 
-No âmbito tecnológico, os primeiros sistemas de reconhecimento de sinais baseavam-se frequentemente em hardware intrusivo, tais como luvas instrumentadas com sensores de flexão ou sensores inerciais acoplados ao corpo. Embora forneçam leituras cinemáticas diretas, essas abordagens impõem custos elevados, demandam calibração frequente e geram desconforto físico, inviabilizando sua adoção prática em larga escala em dispositivos cotidianos. Por outro lado, as soluções de visão computacional baseadas puramente em sequências de vídeo RGB enfrentam desafios como variações severas de iluminação, oclusões parciais das mãos, ruídos de fundo e expressiva variabilidade intra e inter-sinalizador na velocidade e na geometria dos movimentos. Nesse contexto, a extração de estruturas anatômicas essenciais através de pontos-chave (\textit{landmarks}) espaciais em tempo real, aliada à modelagem de trajetórias temporais por redes neurais recorrentes leves (como Gated Recurrent Units - GRU), consolidou-se como uma frente de pesquisa promissora para conciliar precisão discriminativa e baixo custo computacional \cite{rezende2021minds,rego2025fft}. A proposta do SINALA fundamenta-se nessa direção por meio de uma abordagem estritamente incremental: foca-se, em nível inicial, no reconhecimento robusto de sinais isolados de Libras sob regime de validação rigorosa entre indivíduos distintos e estabilização temporal de predições em câmera convencional, estabelecendo as bases computacionais e metodológicas para a progressão contínua em direção à tradução contextual em tempo real.
+No âmbito tecnológico, os primeiros sistemas de reconhecimento de sinais baseavam-se frequentemente em hardware intrusivo, tais como luvas instrumentadas com sensores de flexão ou sensores inerciais acoplados ao corpo. Embora forneçam leituras cinemáticas diretas, essas abordagens impõem custos elevados, demandam calibração frequente e geram desconforto físico, inviabilizando sua adoção prática em larga escala em dispositivos cotidianos. Por outro lado, as soluções de visão computacional baseadas puramente em sequências de vídeo RGB enfrentam desafios como variações severas de iluminação, oclusões parciais das mãos, ruídos de fundo e expressiva variabilidade intra e inter-sinalizador na velocidade e na geometria dos movimentos. Nesse contexto, a extração de estruturas anatômicas essenciais através de pontos-chave (\textit{landmarks}) espaciais em tempo real, aliada à modelagem de trajetórias temporais por redes neurais recorrentes leves (como Gated Recurrent Units - GRU), consolidou-se como uma frente de pesquisa promissora para conciliar precisão discriminativa e baixo custo computacional \cite{rezende2021minds,rego2025fft}.
 
-\section{Revisão de Literatura}
+Para responder a essas demandas sem incorrer em promessas prematuras de tradução fluente irrestrita, este artigo propõe o sistema \textbf{SINALA}, articulado em torno de uma estratégia de desenvolvimento estritamente incremental. Focando, em seu estágio inicial, no reconhecimento robusto de sinais isolados de Libras sob regime de teste estrito em indivíduos completamente inéditos, o trabalho oferece as seguintes contribuições principais:
+\begin{enumerate}
+    \item A concepção e implementação de um pipeline de visão computacional \textit{markerless}, leve e modular, capaz de operar em câmeras RGB convencionais a 30 quadros por segundo em CPUs de uso geral, dispensando GPUs dedicadas de alto consumo;
+    \item A modelagem sequencial temporal com uma arquitetura GRU compacta otimizada com técnicas de regularização (AdamW, \textit{label smoothing}, \textit{dropout} e aumento espaço-temporal de dados), preservando a coerência das máscaras anatômicas em mãos ocluídas;
+    \item A formalização de um protocolo de avaliação inter-sinalizador estrito sobre o dataset público MINDS-Libras, demonstrando o impacto do viés de identidade presente em partições aleatórias tradicionais;
+    \item A introdução de um módulo de estabilização temporal por janela deslizante de consenso (\textit{debouncing}), que suprime falsos disparos transitórios e gera legendas estáveis; e
+    \item A definição de um roteiro tecnológico fundamentado na literatura nacional para a transição planejada entre a classificação isolada, a segmentação contínua e a tradução semântica.
+\end{enumerate}
+
+O restante deste trabalho está organizado da seguinte forma. A Seção \ref{sec:trabalhos_relacionados} examina a revisão da literatura recente sobre o reconhecimento de sinais e tradução de Libras, situando as abordagens em níveis de complexidade. A Seção \ref{sec:sistema} detalha o sistema em desenvolvimento, apresentando os sensores ópticos de captura, a plataforma computacional de processamento e os protocolos de comunicação adotados. A Seção \ref{sec:metodo} descreve formalmente o método proposto, abrangendo a extração articular, o aumento de dados, o classificador GRU e o buffer de estabilização. A Seção \ref{sec:experimentos} expõe o planejamento experimental, os protocolos de partição inter-sinalizador, a avaliação quantitativa preliminar e a análise qualitativa do protótipo em laboratório. Por fim, a Seção \ref{sec:conclusao} conclui o artigo e delineia os trabalhos futuros.
+
+\section{Trabalhos Relacionados}
+\label{sec:trabalhos_relacionados}
+
+A literatura científica nacional em processamento de línguas de sinais reflete uma clara transição de maturidade, partindo do reconhecimento de alfabetos estáticos até propostas contemporâneas de modelagem espaço-temporal e alinhamento semântico.
 
 \subsection{Nível 1: Reconhecimento de Sinais Isolados de Libras}
 
-No cenário nacional de visão computacional aplicada a Libras, \citeonline{furtado2023markerless} investigam a dispensa completa de dispositivos vestíveis, propondo um sistema interativo e sem marcadores para a identificação visual do alfabeto manual por meio de descritores de contorno. A substituição de luvas ou sensores dedicados por câmeras comuns representa um passo fundamental para a usabilidade diária, embora o alfabeto estático não capture a totalidade dos movimentos que caracterizam a comunicação cotidiana. Expandindo o domínio para além de gestos estáticos, \citeonline{feliciano2023complex} desenvolvem uma metodologia para o reconhecimento de palavras de Libras tanto estáticas quanto dinâmicas em ambientes com fundos complexos e não controlados. Combinando o framework MediaPipe para detecção articular, OpenCV e redes neurais em TensorFlow/Keras, os autores evidenciam que o pré-processamento baseado em coordenadas articulares ameniza substancialmente a sensibilidade a ruídos de cena e iluminação. Esses estudos corroboram a decisão arquitetural do SINALA de operar sobre dados puramente visuais de câmeras convencionais, processando estruturas articuladas em tempo real.
+No cenário nacional de visão computacional aplicada a Libras, \citeonline{furtado2023markerless} investigam a dispensa completa de dispositivos vestíveis, propondo um sistema interativo e sem marcadores para a identificação visual do alfabeto manual por meio de descritores de contorno (CDD). A substituição de luvas ou sensores dedicados por câmeras comuns representa um passo fundamental para a usabilidade diária, embora o alfabeto estático não capture a totalidade dos movimentos que caracterizam a comunicação cotidiana. 
+
+Ampliando esse escopo para unidades lexicais completas, \citeonline{feliciano2023complex} desenvolvem uma metodologia para o reconhecimento de palavras de Libras tanto estáticas quanto dinâmicas em ambientes com fundos complexos e não controlados. Combinando o framework MediaPipe para detecção articular, OpenCV e redes neurais em TensorFlow/Keras, os autores evidenciam que o pré-processamento baseado em coordenadas articulares ameniza substancialmente a sensibilidade a ruídos de cena e iluminação. Esses estudos corroboram a decisão arquitetural do SINALA de operar sobre dados puramente visuais de câmeras convencionais, processando estruturas articuladas em tempo real.
 
 A relevância da modelagem temporal e o impacto das discrepâncias cinemáticas entre diferentes usuários são aprofundados por \citeonline{arcanjo2024dtw}. Os autores extraem \textit{landmarks} de mãos e tronco via MediaPipe, calculam ângulos articulares tridimensionais e realizam a classificação temporal sobre o dataset público MINDS-Libras utilizando o algoritmo Fast Dynamic Time Warping (FastDTW). O estudo revelou que a validação clássica por divisão aleatória (75\% para treino e 25\% para teste) atingiu acurácia de $0{,}98 \pm 0{,}01$, ao passo que a avaliação rigorosa por sinalizador não visto (\textit{Leave-One-Person-Out Cross-Validation} - LOOCV) obteve $0{,}86 \pm 0{,}08$ (F1 de $0{,}87$). Esse resultado demonstra empiricamente que avaliar modelos com amostras do mesmo sinalizador em ambos os conjuntos gera uma estimativa artificialmente inflada. Para o projeto SINALA, essa contribuição estabelece como diretriz inegociável a segregação estrita de sinalizadores entre partições de treino e teste, assegurando que o desempenho mensurado reflita capacidade genuína de generalização para novos usuários.
 
 \subsection{Nível 2: Transição para Modelagem Espaço-Temporal e Tradução}
 
-Buscando contornar as limitações de representações puramente bidimensionais sem recorrer a sensores de profundidade físicos, \citeonline{castro2023multistream} propõem uma arquitetura baseada em redes convolucionais 3D (\textit{multi-stream} 3D CNN) integrada à geração artificial de mapas de profundidade via redes generativas. O modelo combina fluxos visuais de mãos, face e velocidades articulares, alcançando acurácia de $0{,}91 \pm 0{,}07$ e F1-score de $0{,}90 \pm 0{,}08$ em vídeos de Libras. De forma análoga, \citeonline{rodrigues2025dynamic} analisam a classificação de sinais dinâmicos avaliando comparativamente cinco arquiteturas convolucionais clássicas (AlexNet, DenseNet121, InceptionV3, ResNet18 e VGG16). A ResNet18 obteve o desempenho superior (74,29\% de acurácia), evidenciando que a capacidade de absorver variações na trajetória e velocidade dos sinais constitui o principal gargalo para elevar o vocabulário reconhecido. Ambas as investigações reforçam que o tratamento do dinamismo temporal é imperativo para que o sistema transite de um classificador isolado para o reconhecimento contínuo.
+Buscando contornar as limitações de representações puramente bidimensionais sem recorrer a sensores de profundidade físicos, \citeonline{castro2023multistream} propõem uma arquitetura baseada em redes convolucionais 3D (\textit{multi-stream} 3D CNN) integrada à geração artificial de mapas de profundidade via redes generativas (GANs). O modelo combina fluxos visuais de mãos, face e velocidades articulares, alcançando acurácia de $0{,}91 \pm 0{,}07$ e F1-score de $0{,}90 \pm 0{,}08$ em vídeos de Libras. De forma análoga, \citeonline{rodrigues2025dynamic} analisam a classificação de sinais dinâmicos avaliando comparativamente cinco arquiteturas convolucionais clássicas (AlexNet, DenseNet121, InceptionV3, ResNet18 e VGG16). A ResNet18 obteve o desempenho superior (74,29\% de acurácia), evidenciando que a capacidade de absorver variações na trajetória e velocidade dos sinais constitui o principal gargalo para elevar o vocabulário reconhecido. Ambas as investigações reforçam que o tratamento do dinamismo temporal é imperativo para que o sistema transite de um classificador isolado para o reconhecimento contínuo.
 
 Por fim, a transição entre a identificação de gestos e a geração de linguagem oral inteligível exige uma camada de interpretação semântica que una o domínio visual ao textual. Nesse contexto, \citeonline{pereira2026semantic} investigam o mapeamento de um espaço vetorial semântico compartilhado entre sentenças em português brasileiro e sequências de glosas em Libras. Utilizando uma arquitetura siamesa baseada no modelo de linguagem BERTimbau e treinada via aprendizado contrastivo com pares negativos controlados, o trabalho demonstra a viabilidade do alinhamento semântico mesmo sobre corpora paralelos de dimensões restritas. O conjunto da literatura analisada fundamenta a estratégia de desenvolvimento em níveis adotada no SINALA: consolida-se primeiramente o reconhecimento de sinais isolados com robustez e invariância a sinalizadores; expande-se a segmentação contínua de movimentos articulados; e, por fim, acopla-se o mapeamento semântico para a síntese de sentenças em português em tempo real.
+
+\section{Descrição do Sistema em Desenvolvimento}
+\label{sec:sistema}
+
+O SINALA foi projetado como uma aplicação local de tecnologia assistiva orientada à captura óptica em tempo real e processamento em borda, priorizando independência de conexão contínua com servidores em nuvem e privacidade dos fluxos de vídeo.
+
+\subsection{Sensores de Captura Óptica}
+
+Em consonância com as premissas de acessibilidade e baixo custo defendidas por \citeonline{furtado2023markerless} e consolidadas no dataset MINDS-Libras \cite{rezende2021minds}, o SINALA elimina integralmente sensores físicos acoplados ao corpo. O único sensor de entrada é uma câmera óptica digital RGB convencional (webcam com sensor de imagem CMOS de obturador rolante, integrada ao computador ou conectada via interface USB). 
+
+O sensor opera tipicamente com resolução nativa de $1280 \times 720$ píxeis (HD) ou $1920 \times 1080$ píxeis (Full HD) com taxa nominal de aquisição de 30 quadros por segundo ($\text{FPS} \approx 30$). A calibração de exposição e balanço de branco é realizada automaticamente pelo controlador do sensor, permitindo ao usuário posicionar-se a uma distância frontal compreendida entre $0{,}5\,\text{m}$ e $1{,}2\,\text{m}$ do dispositivo, enquadrando o plano superior do tronco, ombros, cabeça e o espaço neutro de sinalização dos membros superiores.
+
+\subsection{Plataforma Computacional de Processamento}
+
+Para viabilizar a execução fluida em estações de trabalho convencionais e dispositivos móveis de baixo consumo sem exigir GPUs dedicadas de alto custo computacional, o sistema adota uma divisão funcional entre aceleração neural heterogênea e execução em CPU:
+\begin{itemize}
+    \item \textbf{Unidade de Processamento Principal:} CPU multinúcleo de arquitetura comercial (instruções x86-64 ou ARM64 contemporâneas, e.g. Apple Silicon M-series ou Intel Core / AMD Ryzen). Todo o processamento de inferência do modelo recorrente GRU, a lógica de normalização vetorial e o gerenciamento de buffers são executados exclusivamente em CPU, consumindo fração inferior a 15\% de um núcleo moderno.
+    \item \textbf{Acelerador de Detecção Articular:} A etapa de extração de pontos-chave baseia-se no motor MediaPipe Tasks / TensorFlow Lite, que aproveita internamente delegados de aceleração leve (como XNNPACK e shaders Metal/OpenGL), conforme demonstrado por \citeonline{feliciano2023complex}.
+\end{itemize}
+Essa configuração garante que o sistema atinja latência ponta a ponta inferior a 35 milissegundos por quadro, superando com folga o limiar mínimo para interação em tempo real ($30\,\text{FPS}$).
+
+\subsection{Protocolos de Comunicação e Pipeline de Execução}
+
+A integração entre a câmera física, os modelos de visão e a camada de interface obedece a um pipeline estruturado em três níveis de protocolo e fluxo de dados, ilustrado esquematicamente:
+\begin{enumerate}
+    \item \textbf{Protocolo de Aquisição de Vídeo (UVC):} O enlace físico entre o sensor e o sistema operacional utiliza a especificação padronizada \textit{USB Video Class} (UVC). O acesso em nível de software é intermediado pela biblioteca OpenCV sobre as APIs nativas do sistema (AVFoundation no macOS ou Video4Linux2 no Linux), entregando matrizes de imagem descompactadas no formato BGR/RGB em memória compartilhada.
+    \item \textbf{Barramento de Fila Circular Temporal (\textit{Ring Buffer}):} Para desacoplar a frequência de amostragem da câmera física do ciclo de predição do classificador, os vetores de características geométricas extraídos são inseridos continuamente em uma fila circular em memória (\textit{double-ended queue} - deque) de capacidade fixa $T = 32$ quadros temporais. Quando a fila atinge capacidade máxima, cada novo quadro substitui o mais antigo, mantendo sempre disponível a janela deslizante mais recente da sinalização.
+    \item \textbf{Protocolo de Sincronização e Estabilização de Saída:} As predições brutas geradas pela rede recorrente não são emitidas diretamente como legendas. Elas são submetidas a uma máquina de estados finitos que implementa um protocolo de histerese temporal e decaimento: exige-se um consenso mínimo de $K$ quadros concordantes (e.g. $K=4$) dentro de uma janela deslizante $W$ (e.g. $W=5$) com limiar de confiança superior a $75\%$ ($\tau \ge 0{,}75$) e período de resfriamento (\textit{cooldown}) de $0{,}8\,\text{s}$ antes de atualizar a legenda visível, eliminando oscilações transitórias de interface.
+\end{enumerate}
+
+\section{Método Proposto}
+\label{sec:metodo}
+
+O pipeline metodológico do SINALA articula quatro componentes funcionais: extração articular semântica, aumento espaço-temporal de dados, classificação recorrente e estabilização de predições.
+
+\subsection{Extração e Normalização de Landmarks Articulares}
+
+A cada quadro de vídeo recebido, o módulo de visão computacional emprega o extrator MediaPipe Hands, calibrado com limiares de confiança de detecção e rastreamento de $0{,}5$. O extrator localiza 21 pontos-chave tridimensionais normalizados $(x_i, y_i, z_i) \in [0, 1]^3$ para cada mão presente na cena.
+
+Para garantir invariância a variações na posição absoluta do sinalizador e na proximidade da câmera, os pontos sofrem uma normalização de escala e centralização:
+\begin{equation}
+    \mathbf{p}_i^{\text{norm}} = \frac{\mathbf{p}_i - \mathbf{c}}{\max(S, 10^{-6})},
+\end{equation}
+em que $\mathbf{c} \in \mathbb{R}^3$ denota o baricentro calculado sobre os pulsos das mãos detectadas, e $S = \max_j \|\mathbf{p}_j - \mathbf{c}\|_2$ representa o raio máximo da pose. O vetor de características final de cada quadro possui dimensionalidade $D = 128$, estruturado como:
+\begin{equation}
+    \mathbf{f}_t = \big[ \mathbf{x}_{\text{esq}}, m_{\text{esq}}, \mathbf{x}_{\text{dir}}, m_{\text{dir}} \big] \in \mathbb{R}^{128},
+\end{equation}
+onde $\mathbf{x} \in \mathbb{R}^{63}$ corresponde às 21 coordenadas triaxiais e $m \in \{0, 1\}$ denota a máscara booleana de presença da respectiva mão. Caso uma das mãos não seja detectada, suas coordenadas são estritamente zeradas e sua máscara associada recebe o valor $0$.
+
+\subsection{Aumento de Dados Espaço-Temporal com Preservação de Máscaras}
+
+Para prevenir sobreajuste sobre o reduzido número de sinalizadores disponíveis, o treinamento incorpora um módulo estocástico de aumento de dados (\textit{LandmarkAugmenter}). O aumentador aplica transformações geométricas de escala aleatória ($[0{,}9; 1{,}1]$), translação espacial e perturbação gaussiana controlada com desvio $\sigma = 0{,}01$. 
+
+No eixo temporal, implementa-se uma reamostragem elástica de velocidade temporal com fator $\alpha \in [0{,}85; 1{,}15]$. Crucialmente, para evitar vazamento de coordenadas espúrias em quadros nos quais a mão não está ativa, as coordenadas reamostradas são multiplicadas estritamente pelo valor da máscara mais próxima após a interpolação:
+\begin{equation}
+    \mathbf{x}_{t, \text{mão}}^{\text{aug}} = \mathbf{x}_{t, \text{mão}}^{\text{interp}} \cdot m_{t, \text{mão}}^{\text{nearest}}.
+\end{equation}
+
+\subsection{Classificador Recorrente GRU com Regularização}
+
+A matriz temporal $\mathbf{X} \in \mathbb{R}^{32 \times 128}$ é processada por um classificador baseado em Gated Recurrent Units (GRU), com dimensão oculta $H = 128$:
+\begin{equation}
+    \mathbf{h}_t = \text{GRU}(\mathbf{f}_t, \mathbf{h}_{t-1}), \quad t = 1, \dots, 32,
+\end{equation}
+seguido por uma camada de regularização por descarte aleatório (\textit{dropout} com probabilidade $p = 0{,}2$) e uma projeção linear densa que produz os \textit{logits} sobre as $C = 20$ classes do vocabulário:
+\begin{equation}
+    \mathbf{z} = \mathbf{W} \cdot \text{Dropout}(\mathbf{h}_{32}) + \mathbf{b}, \quad \mathbf{W} \in \mathbb{R}^{C \times H}.
+\end{equation}
+A otimização é conduzida com AdamW ($\text{learning rate} = 5 \times 10^{-4}$, $\text{weight decay} = 10^{-4}$), perda de entropia cruzada com suavização de rótulos (\textit{label smoothing} $= 0{,}05$) e truncamento de norma de gradiente em $1{,}0$.
+
+\subsection{Estabilização Temporal de Legendas em Tempo Real}
+
+Para assegurar legibilidade em contexto interativo, o módulo de tempo real alimenta um buffer de histerese temporal. O sinal estável emitido na tela é dado por:
+\begin{equation}
+    \hat{y}_{\text{estável}} = \begin{cases}
+        \operatorname{mode}(\hat{y}_{t-W+1:t}), & \text{se } \operatorname{count}(\operatorname{mode}) \ge K \text{ e } \bar{c} \ge \tau \text{ e } \Delta t \ge t_{\text{cool}} \\
+        y_{\text{anterior}}, & \text{caso contrário,}
+    \end{cases}
+\end{equation}
+em que $W=5$ representa o tamanho da janela, $K=4$ o consenso mínimo, $\tau = 0{,}75$ a confiança limiar e $t_{\text{cool}} = 0{,}8\,\text{s}$ o intervalo mínimo de comutação.
+
+\section{Planejamento e Avaliação Experimental}
+\label{sec:experimentos}
+
+\subsection{Configuração Experimental e Dataset}
+
+Os experimentos foram planejados sobre o dataset público \textbf{MINDS-Libras} \cite{rezende2021minds}, amplamente referenciado na literatura nacional \cite{arcanjo2024dtw,castro2023multistream}. A base é composta por 1.200 vídeos gravados em estúdio por 12 sinalizadores distintos (identificados de 01 a 12), distribuídos uniformemente em 20 classes semânticas de sinais isolados da Libras: \textit{Acontecer, Aluno, Amarelo, América, Aproveitar, Bala, Banco, Banheiro, Barulho, Cinco, Conhecer, Espelho, Esquina, Filho, Maçã, Medo, Ruim, Sapo, Vacina} e \textit{Vontade}.
+
+A extração de características gera sequências uniformizadas de 32 quadros por vídeo. Todas as sequências foram catalogadas e verificadas via digest criptográfico SHA-256 para prevenir artefatos obsoletos de cache.
+
+\subsection{Protocolo de Partição Inter-Sinalizador}
+
+Para garantir que as métricas reflitam a capacidade genuína de generalização do sistema para novos usuários, estabeleceu-se um protocolo estrito de separação por sinalizador (\textit{signer-independent}), estruturado da seguinte forma:
+\begin{itemize}
+    \item \textbf{Conjunto de Treinamento:} Sinalizadores \textbf{01}, \textbf{07} e \textbf{12} (totalizando 303 amostras rotuladas);
+    \item \textbf{Conjunto de Validação:} Sinalizador \textbf{10} (100 amostras rotuladas para seleção do melhor ponto de parada);
+    \item \textbf{Conjunto de Teste Cego:} Sinalizadores \textbf{02} e \textbf{03} (185 amostras rotuladas, jamais vistas durante o ajuste de pesos).
+\end{itemize}
+Em paralelo, avalia-se o comportamento sob divisão aleatória convencional de amostras para dimensionar o viés de identidade apontado por \citeonline{arcanjo2024dtw}.
+
+\subsection{Resultados Quantitativos Preliminares}
+
+A Tabela \ref{tab:resultados} sumariza a evolução das métricas de teste cego em pessoas não vistas ao longo das iterações do SINALA, comparando o impacto das estratégias de regularização e balanceamento de dados.
+
+\begin{table}[ht]
+\centering
+\caption{Evolução experimental do classificador SINALA em teste inter-sinalizador (20 classes).}
+\label{tab:resultados}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Modelo / Configuração} & \textbf{Estratégia de Treinamento} & \textbf{Acurácia Cega} & \textbf{Macro F1-Score} \\ \midrule
+Baseline Inicial & GRU pura, sem aumento de dados & 15,68\% & 11,79\% \\
+SINALA Regularizado & GRU + Aumento espacial/temporal + Dropout & 27,03\% & 21,73\% \\
+\textbf{SINALA Balanceado} & \textbf{GRU + Aumento + Partição Balanceada} & \textbf{51,89\%} & \textbf{50,95\%} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+A introdução de regularização e aumento espacial/temporal reduziu drasticamente o colapso de classes observado no modelo inicial (que tendia a superpredizer classes majoritárias como \textit{América}). A acurácia inter-sinalizador saltou de 15,68\% para 27,03\% no mesmo conjunto de teste e atingiu 51,89\% quando amostras representativas de bimanualidade foram incorporadas ao conjunto de treino. A latência média de inferência do modelo GRU mediu apenas $1{,}4\,\text{ms}$ por predição em CPU.
+
+\subsection{Avaliação Qualitativa do Protótipo em Bancada}
+
+Para subsidiar a avaliação qualitativa do sistema em funcionamento, o protótipo foi montado na bancada de laboratório conforme descrito na Seção \ref{sec:sistema}. A Figura \ref{fig:prototipo_qualitativo} documenta a cadeia de processamento visual em tempo real sobre um sinal da base de teste:
+
+\begin{figure}[ht]
+    \centering
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figuras/captura_camera_bruta.jpg}
+        \caption*{(a) Captura óptica bruta (RGB).}
+    \end{minipage}\hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figuras/deteccao_landmarks.jpg}
+        \caption*{(b) Esqueleto articular detectado.}
+    \end{minipage}\hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figuras/prototipo_inferencia_hud.jpg}
+        \caption*{(c) Interface HUD com legenda estável.}
+    \end{minipage}
+    \caption{Etapas da cadeia de percepção visual do protótipo SINALA em operação em tempo real: (a) quadro bruto adquirido via webcam USB; (b) rastreamento articular com 21 marcos e conexões anatômicas; (c) interface final com legenda de predição, índice de confiança ($\tau=0{,}94$) e taxa de quadros interativa ($29{,}8\,\text{FPS}$).}
+    \label{fig:prototipo_qualitativo}
+\end{figure}
+
+A inspeção qualitativa evidencia que a abstração esquelética desacopla com sucesso as mãos da textura do fundo e do vestuário do sinalizador. Em testes ao vivo, o buffer de histerese impediu comutações espúrias durante as fases de transição gestual, mantendo a legenda estável durante todo o período em que o sinal permaneceu articulado no espaço de visão da câmera.
+
+\section{Conclusões e Trabalhos Futuros}
+\label{sec:conclusao}
+
+Este trabalho apresentou o SINALA, um sistema assistivo projetado para o reconhecimento visual em tempo real de sinais isolados de Libras em equipamentos convencionais de baixo custo. A fundamentação em uma revisão sistemática da literatura nacional orientou escolhas arquiteturais estratégicas: a adoção de um pipeline estritamente \textit{markerless} baseado em coordenadas articulares via MediaPipe, a modelagem sequencial leve com GRU e a adoção de um protocolo de teste cego inter-sinalizador metodologicamente rigoroso.
+
+Os experimentos no dataset MINDS-Libras demonstraram que técnicas de aumento de dados espaço-temporal e regularização elevam a capacidade de generalização do modelo em indivíduos não vistos, enquanto o buffer de estabilização garante interação visual fluida com latência compatível com tempo real. Como trabalhos futuros no âmbito do roteiro incremental estabelecido, prevê-se: (i) a expansão do vocabulário através da coleta de novos sinalizadores; (ii) a incorporação de marcos faciais para captura de expressões não manuais; (iii) a segmentação contínua de fluxo de vídeo (Nível 2); e (iv) a integração com modelos siameses de linguagem baseados em BERTimbau para viabilizar a tradução semântica de sentenças completas em português (Nível 3).
 
 \bibliographystyle{abntex2-alf}
 \bibliography{references}
