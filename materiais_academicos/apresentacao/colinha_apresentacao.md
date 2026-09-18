@@ -1,10 +1,19 @@
 # Roteiro de Apresentação e Guia dos 10 Artigos (Projeto SINALA)
 
-Este documento acompanha a apresentação oficial **`SINALA_Revisao_Literatura.pptx`** (14 slides). Cada integrante da equipe deve apresentar pelo menos um artigo (tempo sugerido: **3 a 4 minutos por referência**), destacando:
+Este documento acompanha a apresentação oficial **`SINALA_Revisao_Literatura_Academico_Profissional.pptx`** (14 slides). Cada integrante da equipe deve apresentar pelo menos um artigo (tempo sugerido: **3 a 4 minutos por referência**), destacando:
 1. O **Modelo Computacional Utilizado** (explícito);
 2. Os **Resultados Quantitativos** (métricas e acurácia);
 3. Os **Resultados Qualitativos** (vantagens e limitações práticas);
 4. O **Papel no Projeto SINALA** (o que herdamos ou superamos).
+
+## Arquitetura implementada atualmente
+
+O SINALA não usa um único classificador. O modo unificado combina dois modelos especialistas:
+
+1. **Dactilologia A–Z:** MLP em PyTorch com 225 features geométricas invariantes (210 distâncias articulares + 15 ângulos 3D), saída de 26 letras.
+2. **Sinais inteiros e saudações:** GRU temporal unidirecional em PyTorch, entrada de 32 frames × 128 features, hidden size 64, dropout 0,2 e saída de 9 classes conversacionais.
+
+O `camera-unified` extrai landmarks uma única vez, encaminha a mão estável para o MLP e trajetórias com movimento para a GRU, e reúne os resultados no mesmo `WordBuilder`.
 
 ---
 
@@ -37,7 +46,7 @@ Este documento acompanha a apresentação oficial **`SINALA_Revisao_Literatura.p
 ### Slide 2 — Problema e Estratégia do SINALA
 - **Diagnóstico:** 10 milhões de pessoas com deficiência auditiva no Brasil. A Libras possui gramática própria e não aceita tradução literal palavra a palavra. Luvas e sensores corporais são caros, frágeis e desconfortáveis.
 - **Roteiro em 3 Níveis:**
-  - **Nível 1 (MVP Atual):** Reconhecimento de sinais isolados com MediaPipe + GRU sob teste estrito inter-sinalizador e buffer de histerese.
+  - **Nível 1 (MVP Atual):** Reconhecimento de sinais isolados com GRU temporal e dactilologia com MLP geométrica, usando MediaPipe, validação inter-sinalizador e buffer de estabilidade.
   - **Nível 2:** Segmentação temporal contínua e fusão multimodal (mãos, pose e face).
   - **Nível 3:** Tradução semântica via modelos de linguagem (Libras $\rightarrow$ Português correto) e síntese em tempo real.
 
@@ -167,5 +176,5 @@ Este documento acompanha a apresentação oficial **`SINALA_Revisao_Literatura.p
   2. *Baixo Custo & Tempo Real:* MediaPipe + GRU em CPU comum (30 FPS / 1,4 ms de inferência).
   3. *Evolução Modular:* Transição planejada do Nível 1 ao Nível 3.
 - **O Modelo Oficial do SINALA:**
-  - `MediaPipe Hands (128 features) + GRU Recorrente (Dropout / AdamW) + Buffer de Histerese Temporal`.
+  - `MediaPipe Hands + MLP geométrica (225D) para A–Z + GRU temporal (32×128) para sinais inteiros + WordBuilder`.
 - **Agradecimento final.**

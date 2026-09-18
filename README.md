@@ -30,7 +30,21 @@ O pipeline desacopla a captura de pixels da classificação neural por meio de r
              [HUD / Legenda Contínua]
 ```
 
+### 1.1 Modelos treinados atualmente
+
+O SINALA mantém dois modelos especialistas e os combina no modo `camera-unified`:
+
+| Modelo | Entrada | Arquitetura | Saída |
+|---|---|---|---|
+| Dactilologia | 225 features geométricas por frame | MLP PyTorch: 225 → 256 → 128 → 26 | Letras A–Z |
+| Sinais inteiros | 32 frames × 128 features | GRU PyTorch unidirecional, hidden size 64, dropout 0,2 | 9 classes conversacionais |
+
+O pipeline compartilha uma única extração MediaPipe por frame. O MLP processa configurações estáveis de mão; a GRU processa trajetórias temporais.
+
+O SINALA **não usa atualmente** BiGRU, Transformer ou Attention-BiGRU. Essas arquiteturas são possibilidades futuras, não fazem parte do checkpoint atual.
+
 ---
+
 
 ## 2. Bases de Dados e Vocabulário
 
@@ -157,5 +171,4 @@ Atualmente, **45 testes unitários e de integração** cobrem os módulos críti
 │   ├── data/                   # Downloaders, catalog, dataset e extratores
 │   ├── model/                  # Classificadores neurais (GRU, MLP) e treino
 │   └── runtime/                # Aplicações de câmera, WordBuilder e buffers
-└── tests/                      # 43 testes automatizados (PyTest)
-```
+└── tests/                      # 46 testes automatizados (PyTest)
