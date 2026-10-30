@@ -71,15 +71,33 @@ class UnifiedCameraApp:
         self.greeting_armed: bool = True
         self.primary_handedness: str | None = None
 
-    def run(self) -> None:
-        """Run the unified camera loop."""
-        capture = cv2.VideoCapture(self.camera_index)
+    def run(
+        self,
+        video_path: Path | None = None,
+        output_video: Path | None = None,
+        display: bool | None = None,
+    ) -> None:
+        """Run on a webcam or a pre-recorded video."""
+        is_video = video_path is not None
+        show_window = not is_video if display is None else display
+        capture = cv2.VideoCapture(str(video_path) if is_video else self.camera_index)
         if not capture.isOpened():
-            raise RuntimeError(f"Não foi possível abrir a câmera índice {self.camera_index}")
+            target = video_path if is_video else f"câmera índice {self.camera_index}"
+            raise RuntimeError(f"Não foi possível abrir {target}")
 
-        logger.info("Câmera unificada do SINALA iniciada com sucesso. Pressione 'q' para sair.")
+        writer = None
+        if output_video:
+            output_video.parent.mkdir(parents=True, exist_ok=True)
+            fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
+            width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            writer = cv2.VideoWriter(str(output_video), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+            if not writer.isOpened():
+                capture.release()
+                raise RuntimeError(f"Não foi possível criar {output_video}")
+
+        logger.info("Inferência unificada iniciada.")
         previous_time = perf_counter()
-
         status_type = "AGUARDANDO"
         status_text = "AGUARDANDO SINAL"
         status_conf = 0.0
@@ -88,6 +106,8 @@ class UnifiedCameraApp:
             while True:
                 success, frame = capture.read()
                 if not success:
+                    if is_video:
+                        break
                     raise RuntimeError("Falha ao capturar quadro da webcam.")
                 features, results = self.extractor.process(frame)
 
@@ -192,8 +212,11 @@ class UnifiedCameraApp:
                 display = cv2.flip(frame, 1)
                 self._draw_hud(display, status_type, status_text, status_conf, fps)
 
-                cv2.imshow("SINALA - Reconhecimento Unificado (Palavras + Alfabeto)", display)
-                key = cv2.waitKey(1) & 0xFF
+                if writer is not None:
+                    writer.write(display)
+                key = cv2.waitKey(1) & 0xFF if show_window else -1
+                if show_window:
+                    cv2.imshow("SINALA - Reconhecimento Unificado (Palavras + Alfabeto)", display)
 
                 if key == ord("q"):
                     break
@@ -205,8 +228,11 @@ class UnifiedCameraApp:
                     self.word_builder.clear()
         finally:
             capture.release()
+            if writer is not None:
+                writer.release()
             self.extractor.close()
-            cv2.destroyAllWindows()
+            if show_window:
+                cv2.destroyAllWindows()
 
     def _predict_greeting(self) -> tuple[str, float, float]:
         """Classify the current 32-frame sequence and return confidence margin."""

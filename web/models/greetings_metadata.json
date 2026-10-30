@@ -1,0 +1,19 @@
+{
+  "input_size": 128,
+  "hidden_size": 64,
+  "sequence_length": 32,
+  "num_classes": 9,
+  "classes": [
+    "Ajudar",
+    "Cumprimento",
+    "Desculpa",
+    "Nome",
+    "Não",
+    "Obrigado",
+    "Oi",
+    "Por favor",
+    "Sim"
+  ],
+  "model_type": "GRUSignClassifier",
+  "format": "onnx"
+}

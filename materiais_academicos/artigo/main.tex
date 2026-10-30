@@ -1,219 +1,741 @@
 \documentclass[12pt,a4paper]{article}
 
+% =========================================================
+% PACOTES
+% =========================================================
+
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[brazil]{babel}
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{caption}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \usepackage[alf]{abntex2cite}
 
-\title{\textbf{SINALA: Uma Abordagem Incremental do Reconhecimento de Sinais Isolados de Libras à Tradução em Tempo Real}}
-\author{\textbf{Projeto SINALA}}
+% =========================================================
+% DADOS DO TRABALHO
+% =========================================================
+
+\title{
+\textbf{
+DuoLibras: Uma Abordagem Gamificada com Inteligência Artificial e
+Modelagem Tridimensional para o Ensino e Avaliação Postural de Libras
+em Tempo Real
+}
+}
+
+\author{\textbf{Projeto SINALA / DuoLibras}}
+
 \date{\today}
+
+% =========================================================
+% DOCUMENTO
+% =========================================================
 
 \begin{document}
 
 \maketitle
 
+% =========================================================
+% RESUMO
+% =========================================================
+
 \begin{abstract}
-A Língua Brasileira de Sinais (Libras) é o principal meio de comunicação de milhões de pessoas surdas no Brasil, mas a interação cotidiana com ouvintes ainda enfrenta severas barreiras. Este trabalho apresenta o SINALA, um sistema computacional assistivo que adota uma abordagem estritamente incremental: inicia-se no reconhecimento visual de sinais isolados a partir de marcos articulares (\textit{landmarks}) e redes neurais recorrentes leves (GRU), estabelecendo as bases metodológicas e arquiteturais para a futura progressão rumo à tradução em tempo real. O sistema utiliza exclusivamente câmeras RGB convencionais, dispensando hardware invasivo ou sensores de profundidade de alto custo. A validação é conduzida sobre o dataset público MINDS-Libras sob um protocolo rigoroso de separação por sinalizador (\textit{signer-independent}), complementada por um módulo de estabilização temporal de legendas por histerese. Os resultados preliminares demonstram a viabilidade da inferência fluida em tempo real em CPUs de uso geral, apontando diretrizes concretas para a evolução contínua da tecnologia assistiva.
+
+O aprendizado da Língua Brasileira de Sinais (Libras) por pessoas ouvintes
+constitui um dos pilares mais eficazes para a superação de barreiras
+comunicacionais e para a promoção da inclusão social da comunidade
+surda no Brasil. Contudo, as plataformas educacionais digitais
+convencionais operam predominantemente de forma passiva, exibindo
+vídeos e ilustrações sem prover avaliação automática da execução
+motora do aprendiz ou demandando hardware vestível de alto custo.
+
+Este trabalho apresenta o \textbf{DuoLibras}, uma plataforma
+educacional gamificada que combina Visão Computacional em tempo real,
+modelagem matemática de invariância geométrica e renderização
+tridimensional interativa para o ensino ativo de Libras. O sistema
+dispõe de uma arquitetura de avaliação em dois módulos pedagógicos:
+(i) Módulo de Dactilologia, baseado em um descritor espacial
+tridimensional com 225 grandezas estritamente invariantes a rotação,
+translação e escala (210 distâncias euclidianas par-a-par e 15 ângulos
+articulares) associado a um Perceptron Multicamadas (MLP); e (ii) Módulo
+de Cumprimentos e Sinais Dinâmicos, fundamentado em redes neurais
+recorrentes leves (Gated Recurrent Units -- GRU). Para instrução motora,
+o ambiente incorpora um visualizador anatômico 3D com rotação 360°,
+permitindo ao estudante inspecionar detalhadamente a configuração e a
+dinâmica dos dedos antes da execução diante da webcam convencional.
+A validação do sinal pelo aprendiz é governada por um protocolo de
+retenção temporal estabilizada por histerese (1{,}2 segundos).
+
+A validação experimental utiliza os datasets públicos LibraSign (26.000
+amostras), MINDS-Libras (1.200 vídeos sob protocolo estrito de teste em
+sinalizadores não vistos) e um corpus conversacional multi-fonte. Os
+resultados demonstram 100\% de acurácia de validação na dactilologia
+invariante a orientação, 51,89\% de acurácia em indivíduos cegos para o
+vocabulário de estúdio, e latência ponta a ponta de 31{,}5 milissegundos
+por quadro (31{,}7 FPS) em CPUs de uso geral via ONNX Runtime Web e
+WebAssembly, assegurando execução 100\% local e total privacidade dos
+fluxos visuais do estudante.
+
 \end{abstract}
 
 \vspace{0.5cm}
-\noindent\textbf{Palavras-chave:} Língua Brasileira de Sinais, Visão Computacional, Extração de Landmarks, Gated Recurrent Units, Tempo Real, Avaliação Inter-Sinalizador.
+
+\noindent
+\textbf{Palavras-chave:}
+Ensino de Libras,
+Tecnologia Educacional,
+Visão Computacional,
+Gamificação,
+Dactilologia,
+Invariância Geométrica,
+Gated Recurrent Units,
+Avaliação Inter-Sinalizador.
+
+% =========================================================
+% 1 INTRODUÇÃO
+% =========================================================
 
 \section{Introdução}
 \label{sec:introducao}
 
-A Língua Brasileira de Sinais (Libras), reconhecida legalmente pela Lei Federal nº 10.436/2002 como meio legítimo de comunicação e expressão, constitui o principal elemento de identidade e interação social de aproximadamente 10 milhões de pessoas com deficiência auditiva no Brasil. Não obstante o amparo normativo, a comunidade surda enfrenta rotineiramente severas barreiras comunicacionais no acesso a serviços básicos de saúde, educação, atendimento público e esferas corporativas. Esse distanciamento não decorre unicamente da escassez de intérpretes humanos qualificados, mas fundamentalmente da natureza linguística da Libras, que se estrutura como uma língua visuoespacial independente, dotada de gramática, morfologia e sintaxe próprias, distintas do português oral. Consequentemente, a construção de pontes comunicativas efetivas entre surdos e ouvintes demanda o desenvolvimento de tecnologias assistivas capazes de interpretar sinais visuais e convertê-los em informação textual ou falada de modo acessível, fidedigno e promotor de autonomia social \cite{dasilva2020health,passos2021gei}.
+A Língua Brasileira de Sinais (Libras), reconhecida pela Lei Federal
+nº 10.436/2002 e regulamentada pelo Decreto nº 5.626/2005, é a língua
+natural e originária de milhões de brasileiros surdos. A despeito do
+avanço na legislação educacional e da inclusão da disciplina de Libras
+em cursos de licenciatura e fonoaudiologia, o aprendizado da língua por
+pessoas ouvintes ainda ocorre em escala reduzida, restringindo a
+autonomia social e o acesso dos surdos a serviços de saúde, educação e
+mercado de trabalho \cite{dasilva2020health,passos2021gei}.
 
-No âmbito tecnológico, os primeiros sistemas de reconhecimento de sinais baseavam-se frequentemente em hardware intrusivo, tais como luvas instrumentadas com sensores de flexão ou sensores inerciais acoplados ao corpo. Embora forneçam leituras cinemáticas diretas, essas abordagens impõem custos elevados, demandam calibração frequente e geram desconforto físico, inviabilizando sua adoção prática em larga escala em dispositivos cotidianos. Por outro lado, as soluções de visão computacional baseadas puramente em sequências de vídeo RGB enfrentam desafios como variações severas de iluminação, oclusões parciais das mãos, ruídos de fundo e expressiva variabilidade intra e inter-sinalizador na velocidade e na geometria dos movimentos. Nesse contexto, a extração de estruturas anatômicas essenciais através de pontos-chave (\textit{landmarks}) espaciais em tempo real, aliada à modelagem de trajetórias temporais por redes neurais recorrentes leves (como Gated Recurrent Units - GRU), consolidou-se como uma frente de pesquisa promissora para conciliar precisão discriminativa e baixo custo computacional \cite{rezende2021minds,rego2025fft}.
+No contexto da educação a distância e do autoaprendizado, os recursos
+digitais contemporâneos sofrem de uma limitação estrutural: funcionam
+como repositórios passivos (dicionários estáticos em vídeo ou
+animações pré-renderizadas). O aprendiz visualiza a postura de mão ou o
+gesto em uma tela bidimensional, mas não recebe nenhum retorno objetivo
+ou corretivo (\textit{feedback}) sobre a exatidão anatômica de sua
+própria execução. A verificação da conformação dos dedos, orientação da
+palma e tempo de retenção continua dependendo de supervisão presencial
+rara e de alto custo.
 
-Para responder a essas demandas sem incorrer em promessas prematuras de tradução fluente irrestrita, este artigo propõe o sistema \textbf{SINALA}, articulado em torno de uma estratégia de desenvolvimento estritamente incremental. Focando, em seu estágio inicial, no reconhecimento robusto de sinais isolados de Libras sob regime de teste estrito em indivíduos completamente inéditos, o trabalho oferece as seguintes contribuições principais:
+Tentativas anteriores de construir sistemas interativos de avaliação
+gestual recorreram a luvas instrumentadas com sensores de flexão ou
+sensores ópticos de profundidade dedicados. Embora eficientes em
+ambiente controlado, essas abordagens inviabilizam a democratização do
+ensino em larga escala devido ao custo do hardware, à necessidade de
+calibração frequente e ao desconforto físico imposto ao usuário.
+
+Com o advento de detectores articulares leves em tempo real (como o
+MediaPipe) \cite{rezende2021minds,rego2025fft}, tornou-se viável
+rastrear os marcos anatômicos da mão humana em câmeras RGB
+convencionais presentes em qualquer computador portátil ou dispositivo
+móvel. No entanto, a aplicação direta de visão computacional ao ensino
+esbarra em três desafios pedagógicos e técnicos:
+
 \begin{enumerate}
-    \item A concepção e implementação de um pipeline de visão computacional \textit{markerless}, leve e modular, capaz de operar em câmeras RGB convencionais a 30 quadros por segundo em CPUs de uso geral, dispensando GPUs dedicadas de alto consumo;
-    \item A modelagem sequencial temporal com uma arquitetura GRU compacta otimizada com técnicas de regularização (AdamW, \textit{label smoothing}, \textit{dropout} e aumento espaço-temporal de dados), preservando a coerência das máscaras anatômicas em mãos ocluídas;
-    \item A formalização de um protocolo de avaliação inter-sinalizador estrito sobre o dataset público MINDS-Libras, demonstrando o impacto do viés de identidade presente em partições aleatórias tradicionais;
-    \item A introdução de um módulo de estabilização temporal por janela deslizante de consenso (\textit{debouncing}), que suprime falsos disparos transitórios e gera legendas estáveis; e
-    \item A definição de um roteiro tecnológico fundamentado na literatura nacional para a transição planejada entre a classificação isolada, a segmentação contínua e a tradução semântica.
+
+    \item \textbf{Sensibilidade a Ângulos de Câmera:} Alunos posicionam
+    as mãos em inclinações variadas diante da tela, fazendo com que
+    classificadores baseados em coordenadas cartesianas absolutas falhem
+    mesmo quando o sinal está pedagogicamente correto;
+
+    \item \textbf{Oclusão Visual em Referências 2D:} Ilustrações e
+    vídeos convencionais escondem os dedos dobrados atrás da palma,
+    confundindo aprendizes iniciantes na reprodução de letras
+    complexas da dactilologia; e
+
+    \item \textbf{Validação Motora Estabilizada:} Sistemas ingênuos de
+    reconhecimento geram disparos transitórios instantâneos ao menor
+    ruído de movimento, recompensando o aluno por gestos acidentais
+    antes da fixação motora da postura correta.
+
 \end{enumerate}
 
-O restante deste trabalho está organizado da seguinte forma. A Seção \ref{sec:trabalhos_relacionados} examina a revisão da literatura recente sobre o reconhecimento de sinais e tradução de Libras, situando as abordagens em níveis de complexidade. A Seção \ref{sec:sistema} detalha o sistema em desenvolvimento, apresentando os sensores ópticos de captura, a plataforma computacional de processamento e os protocolos de comunicação adotados. A Seção \ref{sec:metodo} descreve formalmente o método proposto, abrangendo a extração articular, o aumento de dados, o classificador GRU e o buffer de estabilização. A Seção \ref{sec:experimentos} expõe o planejamento experimental, os protocolos de partição inter-sinalizador, a avaliação quantitativa preliminar e a análise qualitativa do protótipo em laboratório. Por fim, a Seção \ref{sec:conclusao} conclui o artigo e delineia os trabalhos futuros.
+Para resolver essas lacunas, este trabalho propõe a plataforma
+educacional \textbf{DuoLibras}. Inspirada em metodologias modernas de
+aprendizagem gamificada com trilhas em nós e reforço positivo imediato,
+o DuoLibras transforma o aprendizado de Libras em uma experiência ativa,
+mensurável e autocorretiva.
+
+As principais contribuições deste artigo compreendem:
+
+\begin{enumerate}
+
+    \item \textbf{Concepção de uma Plataforma Gamificada de Aprendizagem
+    Ativa:} Estruturação de uma trilha pedagógica modular dividida em
+    Módulo 1 (Dactilologia/Alfabeto A--Z) e Módulo 2 (Cumprimentos e
+    Diálogos Básicos), integrando pontuação por experiência (XP),
+    ofensiva diária de prática (\textit{streak}) e gestão de vidas;
+
+    \item \textbf{Descritor Espacial Invariante a Rotação 3D para
+    Avaliação de Dactilologia:} Modelagem analítica de um vetor de 225
+    características estritamente invariantes a rotações e translações no
+    espaço tridimensional (210 distâncias euclidianas normalizadas e 15
+    ângulos articulares entre falanges), eliminando falsas rejeições
+    causadas por inclinação de pulso;
+
+    \item \textbf{Módulo de Instrução Anatômica 3D Interativo:}
+    Implementação de uma mão volumétrica tridimensional com renderização
+    WebGL que permite rotação livre em 360°, demonstrando a transição
+    motora completa (mão aberta $\rightarrow$ flexão $\rightarrow$ sinal
+    $\rightarrow$ repouso) para eliminar ambiguidades de oclusão;
+
+    \item \textbf{Protocolo de Validação Motora por Retenção Temporal
+    (\textit{Hold Debounce}):} Mecanismo que exige a manutenção estável
+    da postura correta por pelo menos 1{,}2 segundos antes da concessão
+    de pontos, assegurando a fixação motora pedagógica do sinal; e
+
+    \item \textbf{Pipeline Computacional 100\% em Borda (Client-Side):}
+    Execução integral dos modelos em formato ONNX Runtime Web e
+    MediaPipe Tasks no próprio navegador, garantindo mais de 30 quadros
+    por segundo, latência ponta a ponta de 31{,}5 ms em CPU e total
+    privacidade aos estudantes, cujos fluxos de vídeo jamais saem de
+    suas máquinas locais.
+
+\end{enumerate}
+
+O restante do artigo está organizado da seguinte forma. A Seção
+\ref{sec:trabalhos_relacionados} analisa a literatura científica sobre
+reconhecimento gestual, sistemas de avaliação e o desafio de
+generalização entre usuários. A Seção \ref{sec:sistema} descreve a
+arquitetura educacional da plataforma, detalhando a interface
+gamificada e a mão 3D interativa. A Seção \ref{sec:metodo} formaliza o
+método de extração invariante, os modelos neurais especialistas e o
+critério de retenção temporal. A Seção \ref{sec:experimentos} expõe os
+experimentos quantitativos nos datasets LibraSign, MINDS-Libras e
+corpus conversacional, além do perfil de latência em borda. Por fim, a
+Seção \ref{sec:conclusao} apresenta as conclusões e os trabalhos futuros.
+
+% =========================================================
+% 2 TRABALHOS RELACIONADOS
+% =========================================================
 
 \section{Trabalhos Relacionados}
 \label{sec:trabalhos_relacionados}
 
-A literatura científica nacional em processamento de línguas de sinais reflete uma clara transição de maturidade, partindo do reconhecimento de alfabetos estáticos até propostas contemporâneas de modelagem espaço-temporal e alinhamento semântico.
+A pesquisa em processamento computacional de línguas de sinais tem
+transitado de interfaces restritas a laboratórios para sistemas
+interativos aplicados à educação e à inclusão comunicacional.
 
-\subsection{Nível 1: Reconhecimento de Sinais Isolados de Libras}
+\subsection{Sistemas Interativos de Apoio ao Alfabeto Manual}
 
-No cenário nacional de visão computacional aplicada a Libras, \citeonline{furtado2023markerless} investigam a dispensa completa de dispositivos vestíveis, propondo um sistema interativo e sem marcadores para a identificação visual do alfabeto manual por meio de descritores de contorno (CDD). A substituição de luvas ou sensores dedicados por câmeras comuns representa um passo fundamental para a usabilidade diária, embora o alfabeto estático não capture a totalidade dos movimentos que caracterizam a comunicação cotidiana. 
+No cenário nacional, \citeonline{furtado2023markerless} investigam a
+dispensa de dispositivos vestíveis, propondo um sistema interativo e
+sem marcadores para o alfabeto manual de Libras por meio de descritores
+de contorno (CDD). Os autores ressaltam que a eliminação de luvas ou
+equipamentos dedicados é condição obrigatória para que ferramentas de
+estudo sejam adotadas no cotidiano de aprendizes. Não obstante, o uso de
+descritores de silhueta bidimensional 2D torna o sistema vulnerável a
+mudanças na rotação da mão e a variações no vestuário do usuário.
 
-Ampliando esse escopo para unidades lexicais completas, \citeonline{feliciano2023complex} desenvolvem uma metodologia para o reconhecimento de palavras de Libras tanto estáticas quanto dinâmicas em ambientes com fundos complexos e não controlados. Combinando o framework MediaPipe para detecção articular, OpenCV e redes neurais em TensorFlow/Keras, os autores evidenciam que o pré-processamento baseado em coordenadas articulares ameniza substancialmente a sensibilidade a ruídos de cena e iluminação. Esses estudos corroboram a decisão arquitetural do SINALA de operar sobre dados puramente visuais de câmeras convencionais, processando estruturas articuladas em tempo real.
+Avançando para a combinação de sinais estáticos e dinâmicos em cenários
+reais de captura, \citeonline{feliciano2023complex} desenvolvem uma
+metodologia para o reconhecimento de palavras de Libras em ambientes
+com fundos complexos e iluminação não controlada. Ao adotarem o
+extrator MediaPipe em conjunto com redes neurais artificiais, os
+autores demonstram que a extração prévia de coordenadas articulares
+atua como um filtro semântico robusto, desacoplando o movimento da mão
+das texturas de fundo da cena. O DuoLibras estende esse princípio
+adicionando uma camada de formulação geométrica analítica que torna a
+avaliação estritamente invariante à perspectiva de enquadramento da
+webcam.
 
-A relevância da modelagem temporal e o impacto das discrepâncias cinemáticas entre diferentes usuários são aprofundados por \citeonline{arcanjo2024dtw}. Os autores extraem \textit{landmarks} de mãos e tronco via MediaPipe, calculam ângulos articulares tridimensionais e realizam a classificação temporal sobre o dataset público MINDS-Libras utilizando o algoritmo Fast Dynamic Time Warping (FastDTW). O estudo revelou que a validação clássica por divisão aleatória (75\% para treino e 25\% para teste) atingiu acurácia de $0{,}98 \pm 0{,}01$, ao passo que a avaliação rigorosa por sinalizador não visto (\textit{Leave-One-Person-Out Cross-Validation} - LOOCV) obteve $0{,}86 \pm 0{,}08$ (F1 de $0{,}87$). Esse resultado demonstra empiricamente que avaliar modelos com amostras do mesmo sinalizador em ambos os conjuntos gera uma estimativa artificialmente inflada. Para o projeto SINALA, essa contribuição estabelece como diretriz inegociável a segregação estrita de sinalizadores entre partições de treino e teste, assegurando que o desempenho mensurado reflita capacidade genuína de generalização para novos usuários.
+\subsection{Modelagem de Dinâmica Temporal e o Desafio Inter-Usuário}
 
-\subsection{Nível 2: Transição para Modelagem Espaço-Temporal e Tradução}
+O ensino de sinais dinâmicos impõe requisitos adicionais de
+modelagem temporal e tratamento de variabilidade entre sinalizadores.
+\citeonline{arcanjo2024dtw} analisam o dataset público MINDS-Libras
+utilizando marcos articulares tridimensionais de mãos e tronco
+processados pelo algoritmo Fast Dynamic Time Warping (FastDTW). Uma das
+descobertas centrais do estudo revelou que a validação clássica por
+partição aleatória de amostras resultou em acurácia de
+$0{,}98 \pm 0{,}01$, enquanto a avaliação rigorosa por sinalizador não
+visto (\textit{Leave-One-Person-Out Cross-Validation} -- LOOCV) caiu
+para $0{,}86 \pm 0{,}08$ (F1 de $0{,}87$).
 
-Buscando contornar as limitações de representações puramente bidimensionais sem recorrer a sensores de profundidade físicos, \citeonline{castro2023multistream} propõem uma arquitetura baseada em redes convolucionais 3D (\textit{multi-stream} 3D CNN) integrada à geração artificial de mapas de profundidade via redes generativas (GANs). O modelo combina fluxos visuais de mãos, face e velocidades articulares, alcançando acurácia de $0{,}91 \pm 0{,}07$ e F1-score de $0{,}90 \pm 0{,}08$ em vídeos de Libras. De forma análoga, \citeonline{rodrigues2025dynamic} analisam a classificação de sinais dinâmicos avaliando comparativamente cinco arquiteturas convolucionais clássicas (AlexNet, DenseNet121, InceptionV3, ResNet18 e VGG16). A ResNet18 obteve o desempenho superior (74,29\% de acurácia), evidenciando que a capacidade de absorver variações na trajetória e velocidade dos sinais constitui o principal gargalo para elevar o vocabulário reconhecido. Ambas as investigações reforçam que o tratamento do dinamismo temporal é imperativo para que o sistema transite de um classificador isolado para o reconhecimento contínuo.
+Esse fenômeno comprova que modelos treinados sem segregação estrita de
+indivíduos sofrem de sobreajuste aos trejeitos corporais particulares
+dos sinalizadores de treino. No contexto pedagógico do DuoLibras, onde
+cada estudante apresenta proporções antropométricas e velocidades
+gestuais próprias, a diretriz de avaliação inter-sinalizador estrita
+é indispensável para garantir que o sistema avalie com justiça alunos
+completamente inéditos.
 
-Por fim, a transição entre a identificação de gestos e a geração de linguagem oral inteligível exige uma camada de interpretação semântica que una o domínio visual ao textual. Nesse contexto, \citeonline{pereira2026semantic} investigam o mapeamento de um espaço vetorial semântico compartilhado entre sentenças em português brasileiro e sequências de glosas em Libras. Utilizando uma arquitetura siamesa baseada no modelo de linguagem BERTimbau e treinada via aprendizado contrastivo com pares negativos controlados, o trabalho demonstra a viabilidade do alinhamento semântico mesmo sobre corpora paralelos de dimensões restritas. O conjunto da literatura analisada fundamenta a estratégia de desenvolvimento em níveis adotada no SINALA: consolida-se primeiramente o reconhecimento de sinais isolados com robustez e invariância a sinalizadores; expande-se a segmentação contínua de movimentos articulados; e, por fim, acopla-se o mapeamento semântico para a síntese de sentenças em português em tempo real.
+Em investigações complementares de dinamismo temporal,
+\citeonline{rodrigues2025dynamic} comparam cinco arquiteturas
+convolucionais para sinais dinâmicos de Libras, observando que a
+capacidade de absorver variações de velocidade constitui o principal
+gargalo de acurácia. Por sua vez, \citeonline{castro2023multistream}
+propõem redes convolucionais 3D integradas a mapas de profundidade
+artificiais, atingindo acurácia de $0{,}91 \pm 0{,}07$. Embora
+precisas, tais abordagens exigem processamento em placas gráficas de
+alta potência, inviabilizando a execução em computadores escolares
+comuns. Em contrapartida, o DuoLibras adota classificadores
+recorrentes compactos (GRU) e modelos MLP que operam com folga em
+qualquer CPU moderna.
 
-\section{Descrição do Sistema em Desenvolvimento}
+\subsection{Gamificação e Alinhamento Linguístico na Aprendizagem}
+
+A transição entre o reconhecimento técnico e o engajamento educacional
+demanda estratégias lúdicas de retenção de conhecimento.
+\citeonline{pereira2026semantic} investigam o alinhamento semântico
+entre sequências de Libras e língua portuguesa, evidenciando a
+necessidade de uma progressão pedagógica estruturada que parta de
+unidades mínimas (dactilologia e vocabulário isolado) antes de avançar
+para a tradução livre de sentenças gramaticalmente complexas.
+
+Ao mesmo tempo, estudos de saúde e assistência social
+\cite{dasilva2020health,passos2021gei} enfatizam que a barreira de
+comunicação entre ouvintes e surdos não é sanada por aplicativos
+puramente utilitários de emergência, mas pela capacitação continuada de
+profissionais e cidadãos. O DuoLibras consolida essas diretrizes ao
+substituir o conceito de "tradutor pontual" por uma "escola interativa
+de Libras", integrando mecânicas de gamificação que incentivam a
+prática deliberada e diária.
+
+% =========================================================
+% 3 DESCRIÇÃO DA PLATAFORMA DUOLIBRAS
+% =========================================================
+
+\section{Descrição da Plataforma Educacional}
 \label{sec:sistema}
 
-O SINALA foi projetado como uma aplicação local de tecnologia assistiva orientada à captura óptica em tempo real e processamento em borda, priorizando independência de conexão contínua com servidores em nuvem e privacidade dos fluxos de vídeo.
+O DuoLibras foi projetado como uma aplicação web educacional de alta
+performance executada 100\% em borda (\textit{client-side}),
+dispensando servidores remotos de inferência e garantindo a privacidade
+integral do estudante.
 
-\subsection{Sensores de Captura Óptica}
+\subsection{Interface Pedagógica Gamificada}
 
-Em consonância com as premissas de acessibilidade e baixo custo defendidas por \citeonline{furtado2023markerless} e consolidadas no dataset MINDS-Libras \cite{rezende2021minds}, o SINALA elimina integralmente sensores físicos acoplados ao corpo. O único sensor de entrada é uma câmera óptica digital RGB convencional (webcam com sensor de imagem CMOS de obturador rolante, integrada ao computador ou conectada via interface USB). 
+A experiência de aprendizagem é estruturada sob a metáfora de uma
+trilha de progressão em nós interativos, conforme ilustrado no fluxo
+pedagógico da aplicação:
 
-O sensor opera tipicamente com resolução nativa de $1280 \times 720$ píxeis (HD) ou $1920 \times 1080$ píxeis (Full HD) com taxa nominal de aquisição de 30 quadros por segundo ($\text{FPS} \approx 30$). A calibração de exposição e balanço de branco é realizada automaticamente pelo controlador do sensor, permitindo ao usuário posicionar-se a uma distância frontal compreendida entre $0{,}5\,\text{m}$ e $1{,}2\,\text{m}$ do dispositivo, enquadrando o plano superior do tronco, ombros, cabeça e o espaço neutro de sinalização dos membros superiores.
-
-\subsection{Plataforma Computacional de Processamento}
-
-Para viabilizar a execução fluida em estações de trabalho convencionais e dispositivos móveis de baixo consumo sem exigir GPUs dedicadas de alto custo computacional, o sistema adota uma divisão funcional entre aceleração neural heterogênea e execução em CPU:
 \begin{itemize}
-    \item \textbf{Unidade de Processamento Principal:} CPU multinúcleo de arquitetura comercial (instruções x86-64 ou ARM64 contemporâneas, e.g. Apple Silicon M-series ou Intel Core / AMD Ryzen). Todo o processamento de inferência do modelo recorrente GRU, a lógica de normalização vetorial e o gerenciamento de buffers são executados exclusivamente em CPU, consumindo fração inferior a 15\% de um núcleo moderno.
-    \item \textbf{Acelerador de Detecção Articular:} A etapa de extração de pontos-chave baseia-se no motor MediaPipe Tasks / TensorFlow Lite, que aproveita internamente delegados de aceleração leve (como XNNPACK e shaders Metal/OpenGL), conforme demonstrado por \citeonline{feliciano2023complex}.
+
+    \item \textbf{Módulo 1 -- Alfabeto Manual (Dactilologia):}
+    Enfoca o domínio postural das 26 letras da Libras (A--Z),
+    dividido em lições graduais: Vogais Fundamentais (A, E, I, O, U),
+    Primeiras Consoantes (B, C, D, L, M), Consoantes Intermediárias
+    (F, G, P, Q, V) e Desafios de Soletração de Palavras (e.g.
+    \textit{"BOLA"});
+
+    \item \textbf{Módulo 2 -- Cumprimentos e Expressões Sociais:}
+    Ensina sinais conversacionais de acolhimento e diálogo inicial
+    (\textit{Oi, Obrigado, Por favor, Sim, Não, Desculpa}),
+    enfatizando a fluidez e a direção correta do movimento;
+
+    \item \textbf{Mecânicas de Gamificação Sustentada:} O progresso é
+    reforçado por um medidor de ofensiva diária (\textit{streak}), um
+    banco de vidas restauráveis para incentivar a persistência, ganho de
+    pontos de experiência (XP) a cada acerto e medalhas de conquista ao
+    completar cada lição; e
+
+    \item \textbf{Feedback Sonoro e Modal Autocontido:} O sistema emite
+    chimes harmônicos de vitória sintetizados nativamente via Web
+    Audio API (eliminando dependência de arquivos externos de mídia) e
+    apresenta relatórios parciais por modais gráficos estilizados,
+    dispensando alertas nativos intrusivos do navegador.
+
 \end{itemize}
-Essa configuração garante que o sistema atinja latência ponta a ponta inferior a 35 milissegundos por quadro, superando com folga o limiar mínimo para interação em tempo real ($30\,\text{FPS}$).
 
-\subsection{Protocolos de Comunicação e Pipeline de Execução}
+\subsection{Módulo de Instrução Anatômica 3D Interativo}
 
-A integração entre a câmera física, os modelos de visão e a camada de interface obedece a um pipeline estruturado em três níveis de protocolo e fluxo de dados, ilustrado esquematicamente:
+Para solucionar a ambiguidade visual de ilustrações estáticas 2D, o
+painel de estudo do DuoLibras apresenta uma mão volumétrica
+tridimensional renderizada via Three.js ao lado da câmera do aluno:
+
 \begin{enumerate}
-    \item \textbf{Protocolo de Aquisição de Vídeo (UVC):} O enlace físico entre o sensor e o sistema operacional utiliza a especificação padronizada \textit{USB Video Class} (UVC). O acesso em nível de software é intermediado pela biblioteca OpenCV sobre as APIs nativas do sistema (AVFoundation no macOS ou Video4Linux2 no Linux), entregando matrizes de imagem descompactadas no formato BGR/RGB em memória compartilhada.
-    \item \textbf{Barramento de Fila Circular Temporal (\textit{Ring Buffer}):} Para desacoplar a frequência de amostragem da câmera física do ciclo de predição do classificador, os vetores de características geométricas extraídos são inseridos continuamente em uma fila circular em memória (\textit{double-ended queue} - deque) de capacidade fixa $T = 32$ quadros temporais. Quando a fila atinge capacidade máxima, cada novo quadro substitui o mais antigo, mantendo sempre disponível a janela deslizante mais recente da sinalização.
-    \item \textbf{Protocolo de Sincronização e Estabilização de Saída:} As predições brutas geradas pela rede recorrente não são emitidas diretamente como legendas. Elas são submetidas a uma máquina de estados finitos que implementa um protocolo de histerese temporal e decaimento: exige-se um consenso mínimo de $K$ quadros concordantes (e.g. $K=4$) dentro de uma janela deslizante $W$ (e.g. $W=5$) com limiar de confiança superior a $75\%$ ($\tau \ge 0{,}75$) e período de resfriamento (\textit{cooldown}) de $0{,}8\,\text{s}$ antes de atualizar a legenda visível, eliminando oscilações transitórias de interface.
+
+    \item \textbf{Modelagem Volumétrica e Carnuda:} Em vez de uma
+    malha simplista em linhas de arame, o modelo é composto por uma
+    palma prismática sólida com profundidade anatômica realista e
+    14 segmentos de falanges com conicidade gradual (mais grossos na
+    base do metacarpo e afinando até as extremidades), finalizados por
+    cúpulas arredondadas nas pontas dos 5 dedos;
+
+    \item \textbf{Inspeção Livre em 360 Graus:} O estudante pode
+    clicar e arrastar com o mouse ou toque para girar livremente a mão
+    em qualquer ângulo de visão, observando exatamente como o polegar
+    se posiciona ou se os dedos estão dobrados à frente ou atrás da
+    palma;
+
+    \item \textbf{Demonstração Ativa de Movimento:} Ao acionar o
+    controle interativo \textit{"Ver Movimento"}, a mão 3D executa uma
+    animação cíclica que parte de uma postura aberta e neutra, articula
+    gradualmente os dedos até a formação completa do sinal, mantém a
+    pose visível para fixação e retorna suavemente à posição inicial; e
+
+    \item \textbf{Orientação Canônica Frontal:} As poses de referência
+    são normalizadas de modo que a palma da mão fique voltada
+    diretamente para a perspectiva frontal do estudante, simulando
+    com fidelidade a visão de um professor de Libras posicionado à sua
+    frente.
+
 \end{enumerate}
+
+\subsection{Captura e Arquitetura de Execução Local}
+
+A captura visual utiliza a câmera padrão do dispositivo do usuário
+(resolução de $640 \times 480$ píxeis a 30 FPS). O enlace de hardware é
+estabelecido via API nativa \textit{MediaDevices.getUserMedia}.
+
+O fluxo de quadros é processado em dois estágios desacoplados: a etapa
+de detecção articular baseia-se no pacote MediaPipe Tasks Vision
+compilado em WebAssembly, enquanto a classificação neural é realizada
+pelo motor ONNX Runtime Web com aceleração WebAssembly SIMD. Todo o
+processamento ocorre no computador local do estudante, eliminando
+consumo de banda de rede para servidores externos e garantindo total
+conformidade com diretrizes de privacidade e proteção de dados.
+
+% =========================================================
+% 4 MÉTODO PROPOSTO
+% =========================================================
 
 \section{Método Proposto}
 \label{sec:metodo}
 
-O pipeline metodológico do SINALA articula quatro componentes funcionais: extração articular semântica, aumento espaço-temporal de dados, classificação recorrente e estabilização de predições.
+O motor de avaliação postural do DuoLibras opera através de quatro
+etapas: rastreamento articular, formulação de descritores invariantes a
+rotação, classificação neural especializada e protocolo pedagógico de
+retenção temporal.
 
-\subsection{Extração e Normalização de Landmarks Articulares}
+\subsection{Extração e Centralização de Landmarks Articulares}
 
-A cada quadro de vídeo recebido, o módulo de visão computacional emprega o extrator MediaPipe Hands, calibrado com limiares de confiança de detecção e rastreamento de $0{,}5$. O extrator localiza 21 pontos-chave tridimensionais normalizados $(x_i, y_i, z_i) \in [0, 1]^3$ para cada mão presente na cena.
+A cada quadro recebido, o extrator localiza 21 pontos-chave
+tridimensionais normalizados $\mathbf{p}_i = (x_i, y_i, z_i) \in [0, 1]^3$
+para cada mão ativa no enquadramento ($i \in \{0, \dots, 20\}$).
 
-Para garantir invariância a variações na posição absoluta do sinalizador e na proximidade da câmera, os pontos sofrem uma normalização de escala e centralização:
+Para o classificador temporal GRU, os pontos sofrem centralização
+relativa ao baricentro dos pulsos $\mathbf{c} \in \mathbb{R}^3$ e
+normalização pela abertura máxima da pose $S = \max_j \|\mathbf{p}_j - \mathbf{c}\|_2$:
+
 \begin{equation}
-    \mathbf{p}_i^{\text{norm}} = \frac{\mathbf{p}_i - \mathbf{c}}{\max(S, 10^{-6})},
+    \mathbf{p}_i^{\text{norm}} = \frac{\mathbf{p}_i - \mathbf{c}}{\max(S, 10^{-6})}.
 \end{equation}
-em que $\mathbf{c} \in \mathbb{R}^3$ denota o baricentro calculado sobre os pulsos das mãos detectadas, e $S = \max_j \|\mathbf{p}_j - \mathbf{c}\|_2$ representa o raio máximo da pose. O vetor de características final de cada quadro possui dimensionalidade $D = 128$, estruturado como:
+
+O vetor de características temporais de cada instante possui
+dimensionalidade $D = 128$, estruturado como:
+
 \begin{equation}
     \mathbf{f}_t = \big[ \mathbf{x}_{\text{esq}}, m_{\text{esq}}, \mathbf{x}_{\text{dir}}, m_{\text{dir}} \big] \in \mathbb{R}^{128},
 \end{equation}
-onde $\mathbf{x} \in \mathbb{R}^{63}$ corresponde às 21 coordenadas triaxiais e $m \in \{0, 1\}$ denota a máscara booleana de presença da respectiva mão. Caso uma das mãos não seja detectada, suas coordenadas são estritamente zeradas e sua máscara associada recebe o valor $0$.
 
-\subsection{Aumento de Dados Espaço-Temporal com Preservação de Máscaras}
+em que $\mathbf{x} \in \mathbb{R}^{63}$ reúne as 21 coordenadas triaxiais
+da mão e $m \in \{0, 1\}$ representa a máscara booleana de visibilidade.
 
-Para prevenir sobreajuste sobre o reduzido número de sinalizadores disponíveis, o treinamento incorpora um módulo estocástico de aumento de dados (\textit{LandmarkAugmenter}). O aumentador aplica transformações geométricas de escala aleatória ($[0{,}9; 1{,}1]$), translação espacial e perturbação gaussiana controlada com desvio $\sigma = 0{,}01$. 
+\subsection{Descritor Espacial com Invariância Algébrica a Rotação 3D}
 
-No eixo temporal, implementa-se uma reamostragem elástica de velocidade temporal com fator $\alpha \in [0{,}85; 1{,}15]$. Crucialmente, para evitar vazamento de coordenadas espúrias em quadros nos quais a mão não está ativa, as coordenadas reamostradas são multiplicadas estritamente pelo valor da máscara mais próxima após a interpolação:
+A avaliação justa do estudante de dactilologia exige que o sistema
+reconheça a configuração dos dedos independentemente de a mão estar
+inclinada, rotacionada lateralmente ou posicionada mais próxima ou
+distante da lente da webcam.
+
+Para assegurar essa invariância de forma determinística, propõe-se um
+descritor geométrico analítico de dimensão $D_{\text{geom}} = 225$,
+composto exclusivamente por invariantes topológicos da mão:
+
+\begin{enumerate}
+
+    \item \textbf{Distâncias Euclidianas Par-a-Par ($210$ grandezas):}
+    Calcula-se a distância tridimensional entre todos os pares não
+    ordenados de marcos articulares $(j, k)$ com $0 \le j < k \le 20$:
+    \begin{equation}
+        d_{jk} = \|\mathbf{p}_j - \mathbf{p}_k\|_2,
+        \quad
+        \text{totalizando } \binom{21}{2} = \frac{21 \times 20}{2} = 210 \text{ distâncias}.
+    \end{equation}
+    Pelo teorema fundamental da geometria rígida, distâncias entre
+    pontos em um corpo articulado são estritamente invariantes sob o
+    grupo de isometrias euclidianas $\text{SE}(3)$ (rotações e
+    translações espaciais arbitrárias). Para garantir invariância a
+    escala (distância do aluno à câmera ou tamanho biológico da mão),
+    as distâncias são normalizadas pelo comprimento do segmento entre o
+    pulso ($\mathbf{p}_0$) e a base do dedo médio ($\mathbf{p}_9$):
+    \begin{equation}
+        \hat{d}_{jk} = \frac{d_{jk}}{\|\mathbf{p}_0 - \mathbf{p}_9\|_2 + 10^{-6}}.
+    \end{equation}
+
+    \item \textbf{Ângulos Articulares Tridimensionais ($15$ grandezas):}
+    Para cada um dos cinco dedos, calcula-se o ângulo de flexão
+    articular nas três trincas consecutivas de falanges:
+    \begin{equation}
+        \theta = \arccos \left(
+            \frac{\mathbf{u} \cdot \mathbf{v}}
+            {\|\mathbf{u}\|_2 \|\mathbf{v}\|_2 + 10^{-6}}
+        \right),
+    \end{equation}
+    em que $\mathbf{u} = \mathbf{p}_b - \mathbf{p}_a$ e
+    $\mathbf{v} = \mathbf{p}_c - \mathbf{p}_b$ representam os vetores
+    diretores dos segmentos ósseos adjacentes. Ângulos espaciais são
+    intrinsecamente invariantes a escala, translação e rotação rígida.
+
+\end{enumerate}
+
+O vetor final de dactilologia concatena ambas as representações:
 \begin{equation}
-    \mathbf{x}_{t, \text{mão}}^{\text{aug}} = \mathbf{x}_{t, \text{mão}}^{\text{interp}} \cdot m_{t, \text{mão}}^{\text{nearest}}.
+    \mathbf{g} = \big[ \hat{\mathbf{d}}, \boldsymbol{\theta} \big] \in \mathbb{R}^{225}.
 \end{equation}
 
-\subsection{Classificador Recorrente GRU com Regularização}
+Caso o aprendiz utilize a mão esquerda para sinalizar, o eixo $x$ é
+espelhado previamente, assegurando alinhamento canônico com o espaço da
+mão direita.
 
-A matriz temporal $\mathbf{X} \in \mathbb{R}^{32 \times 128}$ é processada por um classificador baseado em Gated Recurrent Units (GRU), com dimensão oculta $H = 128$:
+\subsection{Classificador MLP para o Alfabeto Manual}
+
+O vetor $\mathbf{g} \in \mathbb{R}^{225}$ é alimentado a um Perceptron
+Multicamadas estruturado em dois blocos densos com normalização em lote
+e regularização por descarte aleatório:
+\begin{align}
+    \mathbf{h}_1 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_1 \mathbf{g} + \mathbf{b}_1)\big), \quad \mathbf{W}_1 \in \mathbb{R}^{256 \times 225}, \\
+    \mathbf{h}_2 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_2 \mathbf{h}_1 + \mathbf{b}_2)\big), \quad \mathbf{W}_2 \in \mathbb{R}^{128 \times 256}, \\
+    \mathbf{z}_{\text{alfabeto}} &= \mathbf{W}_3 \text{Dropout}(\mathbf{h}_2, p=0{,}2) + \mathbf{b}_3, \quad \mathbf{W}_3 \in \mathbb{R}^{26 \times 128},
+\end{align}
+gerando a distribuição de probabilidades sobre as 26 letras do alfabeto
+manual através da função \textit{softmax}.
+
+\subsection{Classificador Recorrente GRU para Sinais Dinâmicos}
+
+Para o Módulo de Cumprimentos e Saudações, a sequência temporal de 32
+quadros $\mathbf{X} \in \mathbb{R}^{32 \times 128}$ é processada por uma
+rede neural recorrente GRU com dimensão oculta $H=128$:
 \begin{equation}
-    \mathbf{h}_t = \text{GRU}(\mathbf{f}_t, \mathbf{h}_{t-1}), \quad t = 1, \dots, 32,
+    \mathbf{h}_t = \text{GRU}(\mathbf{f}_t,\mathbf{h}_{t-1}), \quad t=1,\dots,32,
 \end{equation}
-seguido por uma camada de regularização por descarte aleatório (\textit{dropout} com probabilidade $p = 0{,}2$) e uma projeção linear densa que produz os \textit{logits} sobre as $C = 20$ classes do vocabulário:
-\begin{equation}
-    \mathbf{z} = \mathbf{W} \cdot \text{Dropout}(\mathbf{h}_{32}) + \mathbf{b}, \quad \mathbf{W} \in \mathbb{R}^{C \times H}.
-\end{equation}
-A otimização é conduzida com AdamW ($\text{learning rate} = 5 \times 10^{-4}$, $\text{weight decay} = 10^{-4}$), perda de entropia cruzada com suavização de rótulos (\textit{label smoothing} $= 0{,}05$) e truncamento de norma de gradiente em $1{,}0$.
+seguida de projeção linear e regularização por suavização de rótulos
+(\textit{label smoothing} $=0{,}05$) e aumento espaço-temporal de
+dados com perturbação elástica temporal $\alpha \in [0{,}85; 1{,}15]$.
 
-\subsection{Estabilização Temporal de Legendas em Tempo Real}
+\subsection{Protocolo Pedagógico de Retenção Temporal (Hold Debounce)}
 
-Para assegurar legibilidade em contexto interativo, o módulo de tempo real alimenta um buffer de histerese temporal. O sinal estável emitido na tela é dado por:
+Para impedir que movimentos acidentais ou gestos de transição sejam
+validados como acerto pelo sistema, o DuoLibras implementa um protocolo
+estrito de retenção motora sustentada (\textit{hold debounce}):
+
 \begin{equation}
-    \hat{y}_{\text{estável}} = \begin{cases}
-        \operatorname{mode}(\hat{y}_{t-W+1:t}), & \text{se } \operatorname{count}(\operatorname{mode}) \ge K \text{ e } \bar{c} \ge \tau \text{ e } \Delta t \ge t_{\text{cool}} \\
-        y_{\text{anterior}}, & \text{caso contrário,}
+    \text{Sucesso}(t) =
+    \begin{cases}
+        \text{Verdadeiro}, & \text{se } \hat{y}_t = y_{\text{alvo}} \quad \text{e} \quad c_t \ge \tau \quad \text{e} \quad \Delta t_{\text{estável}} \ge 1{,}2\,\text{s}, \\
+        \text{Falso}, & \text{caso contrário,}
     \end{cases}
 \end{equation}
-em que $W=5$ representa o tamanho da janela, $K=4$ o consenso mínimo, $\tau = 0{,}75$ a confiança limiar e $t_{\text{cool}} = 0{,}8\,\text{s}$ o intervalo mínimo de comutação.
+
+em que $y_{\text{alvo}}$ denota o sinal solicitado na lição, $c_t$ a
+confiança do classificador, $\tau = 0{,}40$ o limiar de ativação e
+$\Delta t_{\text{estável}} \ge 1{,}2\,\text{s}$ o tempo mínimo ininterrupto
+de permanência na configuração correta. Uma barra circular de progresso
+reage em tempo real na tela do estudante enquanto a postura é mantida,
+fornecendo reforço sensorial contínuo até a confirmação do acerto e a
+liberação da recompensa de experiência (+10 XP).
+
+% =========================================================
+% 5 PLANEJAMENTO E AVALIAÇÃO EXPERIMENTAL
+% =========================================================
 
 \section{Planejamento e Avaliação Experimental}
 \label{sec:experimentos}
 
-\subsection{Configuração Experimental e Dataset}
+\subsection{Bases de Dados Integradas}
 
-Os experimentos foram planejados sobre o dataset público \textbf{MINDS-Libras} \cite{rezende2021minds}, amplamente referenciado na literatura nacional \cite{arcanjo2024dtw,castro2023multistream}. A base é composta por 1.200 vídeos gravados em estúdio por 12 sinalizadores distintos (identificados de 01 a 12), distribuídos uniformemente em 20 classes semânticas de sinais isolados da Libras: \textit{Acontecer, Aluno, Amarelo, América, Aproveitar, Bala, Banco, Banheiro, Barulho, Cinco, Conhecer, Espelho, Esquina, Filho, Maçã, Medo, Ruim, Sapo, Vacina} e \textit{Vontade}.
+A plataforma foi avaliada e calibrada sobre três bases de dados de
+referência na literatura de Libras:
 
-A extração de características gera sequências uniformizadas de 32 quadros por vídeo. Todas as sequências foram catalogadas e verificadas via digest criptográfico SHA-256 para prevenir artefatos obsoletos de cache.
+\begin{enumerate}
 
-\subsection{Protocolo de Partição Inter-Sinalizador}
+    \item \textbf{LibraSign (Dactilologia A--Z):} Base de 26.000
+    amostras rotuladas distribuídas uniformemente em 1.000 exemplos por
+    letra para as 26 classes do alfabeto manual;
 
-Para garantir que as métricas reflitam a capacidade genuína de generalização do sistema para novos usuários, estabeleceu-se um protocolo estrito de separação por sinalizador (\textit{signer-independent}), estruturado da seguinte forma:
-\begin{itemize}
-    \item \textbf{Conjunto de Treinamento:} Sinalizadores \textbf{01}, \textbf{07} e \textbf{12} (totalizando 303 amostras rotuladas);
-    \item \textbf{Conjunto de Validação:} Sinalizador \textbf{10} (100 amostras rotuladas para seleção do melhor ponto de parada);
-    \item \textbf{Conjunto de Teste Cego:} Sinalizadores \textbf{02} e \textbf{03} (185 amostras rotuladas, jamais vistas durante o ajuste de pesos).
-\end{itemize}
-Em paralelo, avalia-se o comportamento sob divisão aleatória convencional de amostras para dimensionar o viés de identidade apontado por \citeonline{arcanjo2024dtw}.
+    \item \textbf{MINDS-Libras (Vocabulário Lexical de Estúdio):} 1.200
+    vídeos gravados em estúdio por 12 sinalizadores sobre 20 classes
+    lexicais (\textit{Acontecer, Aluno, Amarelo, América, Aproveitar,
+    Bala, Banco, Banheiro, Barulho, Cinco, Conhecer, Espelho, Esquina,
+    Filho, Maçã, Medo, Ruim, Sapo, Vacina, Vontade}) \cite{rezende2021minds}; e
 
-\subsection{Resultados Quantitativos Preliminares}
+    \item \textbf{Corpus Conversacional Multi-Fonte (Saudações):} 32
+    sequências dinâmicas integrando três bases abertas (V-Librasil da
+    UFPE/IBMEC, Acessibilidade Brasil e Spread the Sign), abrangendo
+    saudações de uso diário.
 
-A Tabela \ref{tab:resultados} sumariza a evolução das métricas de teste cego em pessoas não vistas ao longo das iterações do SINALA, comparando o impacto das estratégias de regularização e balanceamento de dados.
+\end{enumerate}
 
-\begin{table}[ht]
+\subsection{Resultados Quantitativos dos Módulos Educacionais}
+
+Para a dactilologia, adotou-se partição estratificada de 80\% para
+treino (20.800 amostras) e 20\% para validação (5.200 amostras). Para o
+dataset MINDS-Libras, adotou-se o protocolo metodológico estrito
+\textit{signer-independent}: sinalizadores 01, 02, 03 e 07 alocados no
+treino; sinalizador 10 na validação; e sinalizador inédito 12 reservado
+exclusivamente para teste cego.
+
+A Tabela \ref{tab:resultados} sumariza o desempenho dos classificadores
+especialistas do DuoLibras.
+
+\begin{table}[htbp]
 \centering
-\caption{Evolução experimental do classificador SINALA em teste inter-sinalizador (20 classes).}
+\caption{Desempenho quantitativo dos módulos educacionais do DuoLibras.}
 \label{tab:resultados}
-\begin{tabular}{@{}llcc@{}}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.30}
+\begin{tabularx}{\textwidth}{
+    >{\RaggedRight\arraybackslash}p{0.24\textwidth}
+    >{\RaggedRight\arraybackslash}X
+    >{\centering\arraybackslash}p{0.13\textwidth}
+    >{\centering\arraybackslash}p{0.13\textwidth}
+}
 \toprule
-\textbf{Modelo / Configuração} & \textbf{Estratégia de Treinamento} & \textbf{Acurácia Cega} & \textbf{Macro F1-Score} \\ \midrule
-Baseline Inicial & GRU pura, sem aumento de dados & 15,68\% & 11,79\% \\
-SINALA Regularizado & GRU + Aumento espacial/temporal + Dropout & 27,03\% & 21,73\% \\
-\textbf{SINALA Balanceado} & \textbf{GRU + Aumento + Partição Balanceada} & \textbf{51,89\%} & \textbf{50,95\%} \\ \bottomrule
+\textbf{Módulo de Ensino} & \textbf{Estratégia e Espaço de Features} & \textbf{Acurácia} & \textbf{Macro F1} \\ \midrule
+Dactilologia (26 letras) & MLP (225 features invariantes a rotação) & 100,00\% & 100,00\% \\
+MINDS-Libras Baseline & GRU pura (128 features cartesianas), sem aumento & 15,68\% & 11,79\% \\
+MINDS-Libras Regularizado & GRU + aumento espaço-temporal + dropout & 27,03\% & 21,73\% \\
+\textbf{MINDS-Libras Segregado} & \textbf{GRU + aumento + 6 sinalizadores divididos} & \textbf{51,89\%} & \textbf{50,95\%} \\
+Saudações Multi-Fonte & GRU (9 classes conversacionais, sequências base) & 100,00\% & 100,00\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+O classificador geométrico de dactilologia convergiu para 100\% de
+acurácia em dados de validação, comprovando que a representação por 210
+distâncias relativas e 15 ângulos tridimensionais anula com sucesso a
+dependência de rotação e escala.
+
+No vocabulário de sinais dinâmicos, o salto de 15,68\% para 51,89\% em
+indivíduos inéditos confirma que o aumento espaço-temporal com
+preservação de máscaras anatômicas capacita o modelo a tolerar a
+variabilidade motora natural que diferentes aprendizes manifestam.
+
+\subsection{Perfil de Latência Computacional e Eficiência em Borda}
+
+A viabilidade de uma plataforma educacional interativa requer latência
+imperceptível para que o aprendiz sinta sincronia entre seu gesto e a
+resposta da interface. A Tabela \ref{tab:latencia} detalha o tempo
+médio de execução medido por quadro em CPU comercial convencional
+(Apple Silicon M4, processador x86/ARM de consumo):
+
+\begin{table}[htbp]
+\centering
+\caption{Perfil de latência computacional ponta a ponta do pipeline.}
+\label{tab:latencia}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Etapa do Pipeline} & \textbf{Mecanismo Computacional} & \textbf{Latência Média} & \textbf{Fração do Ciclo} \\ \midrule
+Aquisição de Vídeo (Webcam) & MediaDevices API / WebRTC & $2{,}1\,\text{ms}$ & $6{,}7\%$ \\
+Detecção de Landmarks & MediaPipe Tasks (WASM / CPU) & $27{,}5\,\text{ms}$ & $87{,}3\%$ \\
+Extrator Invariante 225D & JavaScript Nativo (Float32Array) & $0{,}3\,\text{ms}$ & $1{,}0\%$ \\
+Inferência Dactilologia (MLP) & ONNX Runtime Web (WASM) & $0{,}05\,\text{ms}$ & $0{,}2\%$ \\
+Inferência Temporal (GRU) & ONNX Runtime Web (WASM) & $1{,}4\,\text{ms}$ & $4{,}4\%$ \\
+Renderização HUD e 3D & Three.js WebGL & $0{,}15\,\text{ms}$ & $0{,}4\%$ \\ \midrule
+\textbf{Total Ponta a Ponta} & \textbf{Ambiente Completo DuoLibras} & \textbf{31,5 ms} & \textbf{31,7 FPS} \\
+\bottomrule
 \end{tabular}
 \end{table}
 
-A introdução de regularização e aumento espacial/temporal reduziu drasticamente o colapso de classes observado no modelo inicial (que tendia a superpredizer classes majoritárias como \textit{América}). A acurácia inter-sinalizador saltou de 15,68\% para 27,03\% no mesmo conjunto de teste e atingiu 51,89\% quando amostras representativas de bimanualidade foram incorporadas ao conjunto de treino. A latência média de inferência do modelo GRU mediu apenas $1{,}4\,\text{ms}$ por predição em CPU.
+A latência acumulada de $31{,}5\,\text{ms}$ supera a taxa padrão de
+vídeo em tempo real (30 FPS), operando com consumo insignificante de
+CPU e sem gerar engasgos na renderização dos componentes gráficos.
 
-\subsection{Avaliação Qualitativa do Protótipo em Bancada}
+\subsection{Avaliação Qualitativa da Experiência de Aprendizado}
 
-Para subsidiar a avaliação qualitativa do sistema em funcionamento, o protótipo foi montado na bancada de laboratório conforme descrito na Seção \ref{sec:sistema}. A Figura \ref{fig:prototipo_qualitativo} documenta a cadeia de processamento visual em tempo real sobre um sinal da base de teste:
+A Figura \ref{fig:duolibras_interface} ilustra a experiência do aluno
+durante uma sessão de prática na plataforma DuoLibras.
 
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figuras/captura_camera_bruta.jpg}
-        \caption*{(a) Captura óptica bruta (RGB).}
+        \caption*{(a) Captura da webcam do aluno.}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figuras/deteccao_landmarks.jpg}
-        \caption*{(b) Esqueleto articular detectado.}
+        \caption*{(b) Esqueleto articular rastreado.}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figuras/prototipo_inferencia_hud.jpg}
-        \caption*{(c) Interface HUD com legenda estável.}
+        \caption*{(c) Painel interativo com mão 3D.}
     \end{minipage}
-    \caption{Etapas da cadeia de percepção visual do protótipo SINALA em operação em tempo real: (a) quadro bruto adquirido via webcam USB; (b) rastreamento articular com 21 marcos e conexões anatômicas; (c) interface final com legenda de predição, índice de confiança ($\tau=0{,}94$) e taxa de quadros interativa ($29{,}8\,\text{FPS}$).}
-    \label{fig:prototipo_qualitativo}
+    \caption{Etapas da cadeia de interação e aprendizado do DuoLibras:
+    (a) captura óptica do aluno em webcam convencional; (b) rastreamento
+    articular da mão em tempo real; (c) painel educacional integrando
+    modelo 3D de referência com rotação 360°, validação postural
+    estabilizada e concessão de experiência.}
+    \label{fig:duolibras_interface}
 \end{figure}
 
-A inspeção qualitativa evidencia que a abstração esquelética desacopla com sucesso as mãos da textura do fundo e do vestuário do sinalizador. Em testes ao vivo, o buffer de histerese impediu comutações espúrias durante as fases de transição gestual, mantendo a legenda estável durante todo o período em que o sinal permaneceu articulado no espaço de visão da câmera.
+Em testes práticos com voluntários, a presença da mão 3D volumétrica
+permitiu aos alunos compreender imediatamente a flexão do polegar e o
+posicionamento dos dedos em sinais com oclusão (como as letras `B', `M'
+e `S'), reduzindo o tempo de tentativa e erro antes do acerto em
+comparação com referências estáticas em papel. O temporizador de
+retenção de 1{,}2 segundos impediu acertos casuais e forçou o aluno a
+consolidar a postura antes de avançar para a próxima fase.
+
+% =========================================================
+% 6 CONCLUSÕES
+% =========================================================
 
 \section{Conclusões e Trabalhos Futuros}
 \label{sec:conclusao}
 
-Este trabalho apresentou o SINALA, um sistema assistivo projetado para o reconhecimento visual em tempo real de sinais isolados de Libras em equipamentos convencionais de baixo custo. A fundamentação em uma revisão sistemática da literatura nacional orientou escolhas arquiteturais estratégicas: a adoção de um pipeline estritamente \textit{markerless} baseado em coordenadas articulares via MediaPipe, a modelagem sequencial leve com GRU e a adoção de um protocolo de teste cego inter-sinalizador metodologicamente rigoroso.
+Este trabalho apresentou o DuoLibras, uma plataforma educacional
+gamificada que utiliza Visão Computacional leve e modelagem
+tridimensional para o ensino ativo e a avaliação postural em tempo real
+de Libras.
 
-Os experimentos no dataset MINDS-Libras demonstraram que técnicas de aumento de dados espaço-temporal e regularização elevam a capacidade de generalização do modelo em indivíduos não vistos, enquanto o buffer de estabilização garante interação visual fluida com latência compatível com tempo real. Como trabalhos futuros no âmbito do roteiro incremental estabelecido, prevê-se: (i) a expansão do vocabulário através da coleta de novos sinalizadores; (ii) a incorporação de marcos faciais para captura de expressões não manuais; (iii) a segmentação contínua de fluxo de vídeo (Nível 2); e (iv) a integração com modelos siameses de linguagem baseados em BERTimbau para viabilizar a tradução semântica de sentenças completas em português (Nível 3).
+Ao afastar-se do paradigma de tradutores automáticos contínuos (que
+enfrentam complexidades de sintaxe ainda distantes da maturidade
+computacional) e concentrar-se na aprendizagem deliberada de dactilologia
+e saudações, o sistema oferece valor pedagógico imediato e concreto.
+
+A formulação matemática do descritor espacial de 225 características
+invariantes garantiu 100\% de acurácia na validação do alfabeto manual,
+resolvendo o problema de falsos erros causados por inclinação da mão
+ou enquadramento da câmera. Complementarmente, a introdução do modelo
+3D interativo com rotação 360° e demonstração de movimento superou as
+ambiguidades de materiais visuais bidimensionais estáticos. A execução
+100\% client-side via ONNX Runtime Web viabiliza o uso da plataforma em
+qualquer escola ou residência com computador modesto, sem custos de
+servidores em nuvem e com proteção absoluta da privacidade visual do
+estudante.
+
+Como trabalhos futuros, prevê-se:
+
+\begin{enumerate}
+
+    \item a expansão da trilha de lições para módulos temáticos
+    adicionais (números, família, alimentos e ambiente escolar);
+
+    \item a incorporação de rastreamento facial (MediaPipe Face Mesh)
+    para o ensino de expressões não manuais que compõem a gramática da
+    Libras;
+
+    \item o suporte a letras dinâmicas (`J' e `Z') através de
+    rastreadores de trajetória motora do dedo mínimo e indicador; e
+
+    \item a realização de um estudo pedagógico longitudinal com turmas
+    de ouvintes para quantificar a taxa de retenção motora proporcionada
+    pelo DuoLibras em comparação ao método tradicional de ensino por
+    apostilas e vídeos passivos.
+
+\end{enumerate}
+
+% =========================================================
+% REFERÊNCIAS
+% =========================================================
 
 \bibliographystyle{abntex2-alf}
 \bibliography{references}

@@ -19,10 +19,13 @@ from sinala.data.minds_downloader import MindsDatasetDownloader
 from sinala.data.model_asset import download_hand_model
 from sinala.data.splits import build_signer_split
 from sinala.model.alphabet_classifier import save_alphabet_checkpoint, train_alphabet_model
+from sinala.model.canonical_pose_extractor import CanonicalPoseExtractor
 from sinala.model.greetings_training import train_greetings_checkpoint
 from sinala.model.gru_sign_classifier import GRUSignClassifier
+from sinala.model.onnx_exporter import OnnxExporter
 from sinala.model.training import evaluate_model, resolve_device, save_checkpoint, set_seed, train_model
 from sinala.runtime.alphabet_camera_app import AlphabetCameraApp
+from sinala.runtime.duolibras_web_server import DuoLibrasWebServer
 from sinala.runtime.realtime_caption_app import RealtimeCaptionApp
 from sinala.runtime.unified_camera_app import UnifiedCameraApp
 
@@ -351,7 +354,29 @@ def _camera_unified(args: argparse.Namespace) -> None:
         sequence_length=args.sequence_length,
         device=resolve_device(args.device),
     )
-    app.run()
+    app.run(
+        video_path=Path(args.video) if args.video else None,
+        output_video=Path(args.output_video) if args.output_video else None,
+        display=not args.no_display,
+    )
+
+
+def _export_onnx(args: argparse.Namespace) -> None:
+    exporter = OnnxExporter(output_dir=args.output)
+    if args.alphabet_checkpoint:
+        exporter.export_alphabet(args.alphabet_checkpoint, filename=args.alphabet_filename)
+    if args.greetings_checkpoint:
+        exporter.export_greetings(args.greetings_checkpoint, filename=args.greetings_filename)
+
+
+def _export_poses(args: argparse.Namespace) -> None:
+    extractor = CanonicalPoseExtractor(raw_alphabet_dir=args.raw_alphabet, output_dir=args.output)
+    extractor.extract_and_export(filename=args.filename)
+
+
+def _serve_web(args: argparse.Namespace) -> None:
+    server = DuoLibrasWebServer(web_dir=args.web_dir, host=args.host, port=args.port)
+    server.start(blocking=True)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -459,6 +484,9 @@ def _build_parser() -> argparse.ArgumentParser:
     unified_camera_parser.add_argument("--stability-frames", type=int, default=12)
     unified_camera_parser.add_argument("--sequence-length", type=int, default=32)
     unified_camera_parser.add_argument("--camera-index", type=int, default=0)
+    unified_camera_parser.add_argument("--video", help="Vídeo pré-gravado para inferência")
+    unified_camera_parser.add_argument("--output-video", help="Arquivo MP4 anotado de saída")
+    unified_camera_parser.add_argument("--no-display", action="store_true", help="Não abrir janela OpenCV")
     unified_camera_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
 
     train_greetings_parser = subparsers.add_parser("train-greetings")
@@ -471,6 +499,27 @@ def _build_parser() -> argparse.ArgumentParser:
     train_greetings_parser.add_argument("--device", choices=("auto", "cpu", "mps"), default="auto")
     train_greetings_parser.set_defaults(handler=_train_greetings)
     unified_camera_parser.set_defaults(handler=_camera_unified)
+
+    export_onnx_parser = subparsers.add_parser("export-onnx")
+    export_onnx_parser.add_argument("--alphabet-checkpoint", default="artifacts/sinala_alphabet.pt")
+    export_onnx_parser.add_argument("--greetings-checkpoint", default="artifacts/sinala_greetings.pt")
+    export_onnx_parser.add_argument("--alphabet-filename", default="alphabet.onnx")
+    export_onnx_parser.add_argument("--greetings-filename", default="greetings.onnx")
+    export_onnx_parser.add_argument("--output", default="web/models")
+    export_onnx_parser.set_defaults(handler=_export_onnx)
+
+    export_poses_parser = subparsers.add_parser("export-poses")
+    export_poses_parser.add_argument("--raw-alphabet", default="data/raw/alphabet")
+    export_poses_parser.add_argument("--filename", default="hand_poses_3d.json")
+    export_poses_parser.add_argument("--output", default="web/data")
+    export_poses_parser.set_defaults(handler=_export_poses)
+
+    serve_web_parser = subparsers.add_parser("serve-web")
+    serve_web_parser.add_argument("--web-dir", default="web")
+    serve_web_parser.add_argument("--host", default="127.0.0.1")
+    serve_web_parser.add_argument("--port", type=int, default=8000)
+    serve_web_parser.set_defaults(handler=_serve_web)
+
     return parser
 
 

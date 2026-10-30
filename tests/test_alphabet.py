@@ -186,3 +186,8 @@ def test_cli_alphabet_subparsers() -> None:
     args_uni = parser.parse_args(["camera-unified", "--greetings-threshold", "0.75"])
     assert args_uni.command == "camera-unified"
     assert args_uni.greetings_threshold == 0.75
+
+    args_video = parser.parse_args(["camera-unified", "--video", "input.mp4", "--output-video", "output.mp4", "--no-display"])
+    assert args_video.video == "input.mp4"
+    assert args_video.output_video == "output.mp4"
+    assert args_video.no_display is True

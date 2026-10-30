@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuoLibras — Aprenda Libras com Inteligência Artificial</title>
+  <link rel="stylesheet" href="css/duolibras.css">
+  <!-- External CDNs for client-side AI & 3D WebGL -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- Top Bar / Header -->
+  <header class="topbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <img src="assets/animals/boto.png" alt="DuoLibras" class="brand-mascot-img">
+      </div>
+      <span>DuoLibras</span>
+    </a>
+
+    <div class="stats-bar">
+      <div class="stat-chip streak" title="Ofensiva diária">
+        <img src="assets/ui/streak.png" alt="Ofensiva" class="stat-icon-img">
+        <span id="stat-streak">1d</span>
+      </div>
+      <div class="stat-chip hearts" title="Vidas disponíveis">
+        <img src="assets/ui/heart.png" alt="Vidas" class="stat-icon-img">
+        <span id="stat-hearts">5</span>
+      </div>
+      <div class="stat-chip xp" title="Experiência acumulada">
+        <img src="assets/ui/xp.png" alt="XP" class="stat-icon-img">
+        <span id="stat-xp">0 XP</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Dashboard / Learning Path View -->
+    <div id="dashboard-view">
+      <!-- Module Tabs -->
+      <nav class="module-tabs">
+        <button class="tab-btn active" data-module="alphabet">
+          <img src="assets/animals/sapo.png" alt="Alfabeto" class="tab-icon-img">
+          <span>Módulo 1: Alfabeto</span>
+        </button>
+        <button class="tab-btn" data-module="greetings">
+          <img src="assets/animals/boto.png" alt="Cumprimentos" class="tab-icon-img">
+          <span>Módulo 2: Cumprimentos</span>
+        </button>
+      </nav>
+
+      <!-- Learning Path Progression -->
+      <div id="learning-path-container" class="learning-path"></div>
+    </div>
+
+    <!-- Practice / Challenge View (Interactive Webcam + 3D Hand) -->
+    <div id="practice-view" class="practice-view">
+      <div class="practice-header">
+        <button id="btn-close-practice" class="close-btn" title="Sair da lição">✕</button>
+        <div class="progress-bar-container">
+          <div id="lesson-progress-bar" class="progress-bar-fill"></div>
+        </div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--gray-700);">PRÁTICA</div>
+      </div>
+
+      <h1 id="challenge-title" class="challenge-title">Carregando desafio...</h1>
+      <p id="challenge-hint" class="challenge-instructions">Posicione a mão diante da câmera para praticar o sinal.</p>
+
+      <!-- Two-column: 3D Reference Hand vs User Webcam -->
+      <div class="practice-grid">
+        <!-- Column 1: 3D Hand Landmark Guide -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="panel-title">Mão 3D</span>
+              <button id="btn-play-motion" class="btn-motion-play" title="Reproduzir movimento do sinal">
+                <span id="motion-icon">▶</span>
+                <span id="motion-text">Ver Movimento</span>
+              </button>
+            </div>
+            <span style="font-size: 11px; color: var(--blue); font-weight: 700;">Gire 360° com o mouse</span>
+          </div>
+          <div id="hand-3d-container" class="hand-3d-box">
+            <div class="rotator-hint">Arraste para inspecionar em 3D</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Live Webcam with Landmark Overlay -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <span class="panel-title">Sua Câmera (Ao Vivo)</span>
+            <div class="webcam-status-pill">
+              <span id="webcam-status-dot" class="status-dot"></span>
+              <span id="webcam-status-text">Iniciando...</span>
+            </div>
+          </div>
+          <div class="webcam-box">
+            <video id="webcam-video" playsinline autoplay muted></video>
+            <canvas id="webcam-canvas"></canvas>
+            <div id="recognition-badge" class="recognition-badge">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hold Timer / Validation Ring -->
+      <div class="hold-timer-container">
+        <span class="timer-label">Mantenha a postura para validar:</span>
+        <div class="timer-bar">
+          <div id="hold-progress-fill" class="timer-fill"></div>
+        </div>
+        <span style="font-size: 12px; font-weight: 700; color: var(--gray-300);">1.2s</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Feedback Footer Drawer (Duolingo Style Celebration) -->
+  <div id="feedback-drawer" class="feedback-drawer">
+    <div class="feedback-message">
+      <div class="feedback-icon">✓</div>
+      <div>
+        <div id="feedback-title" class="feedback-text-title">Excelente!</div>
+        <div id="feedback-subtitle" class="feedback-text-subtitle">Postura reconhecida com precisão. +10 XP</div>
+      </div>
+    </div>
+    <button id="btn-continue-feedback" class="btn-3d btn-primary">Continuar</button>
+  </div>
+
+  <!-- Custom In-App Modal (Duolingo Style - Sem alertas do navegador) -->
+  <div id="duo-modal" class="duo-modal-backdrop">
+    <div class="duo-modal-box">
+      <div class="duo-modal-trophy">
+        <img src="assets/ui/trophy.png" alt="Troféu Marajoara" class="modal-trophy-img">
+      </div>
+      <h2 id="duo-modal-title" class="duo-modal-heading">Lição Concluída!</h2>
+      <p id="duo-modal-subtitle" class="duo-modal-subheading">Você dominou todos os sinais desta lição!</p>
+      
+      <div class="duo-modal-stats">
+        <div class="duo-stat-pill xp">
+          <img src="assets/ui/xp.png" alt="XP" class="pill-stat-img">
+          <div>
+            <div class="val">+50 XP</div>
+            <div class="lbl">BÔNUS GANHO</div>
+          </div>
+        </div>
+        <div class="duo-stat-pill streak">
+          <img src="assets/ui/streak.png" alt="Ofensiva" class="pill-stat-img">
+          <div>
+            <div class="val">+1 DIA</div>
+            <div class="lbl">OFENSIVA</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-modal-close" class="btn-3d btn-primary" style="width: 100%;">
+        Continuar
+      </button>
+    </div>
+  </div>
+
+  <!-- Local Scripts -->
+  <script src="js/audio_synth.js"></script>
+  <script src="js/features.js"></script>
+  <script src="js/onnx_runner.js"></script>
+  <script src="js/hand_3d_viewer.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", async () => {
+      window.duolibras = new DuoLibrasApp();
+      await window.duolibras.init();
+    });
+  </script>
+
+</body>
+</html>

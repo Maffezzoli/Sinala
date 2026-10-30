@@ -44,6 +44,19 @@ O pipeline compartilha uma única extração MediaPipe por frame. O MLP processa
 O SINALA **não usa atualmente** BiGRU, Transformer ou Attention-BiGRU. Essas arquiteturas são possibilidades futuras, não fazem parte do checkpoint atual.
 
 ---
+## 1.2 Notebook Google Colab
+
+`SINALA_Colab_Reproducivel.ipynb` é autocontido: não clona o repositório e não importa `src/sinala`. As células incluem o código de download, extração, treinamento e demonstração.
+
+O notebook baixa:
+
+- alfabeto A–Z via Kaggle;
+- saudações via V-Librasil, Acessibilidade Brasil e Spread the Sign;
+- MINDS-Libras via Zenodo, com os sinalizadores configurados na própria célula.
+
+O MINDS-Libras pode consumir dezenas de GB. Para uma execução rápida de apresentação, altere `DOWNLOAD_MINDS = False`; alfabeto e saudações continuam disponíveis.
+
+---
 
 
 ## 2. Bases de Dados e Vocabulário
@@ -142,6 +155,37 @@ uv run sinala camera-unified
   - **Mão Estacionária:** Se a mão fica parada na postura de uma letra, o classificador geométrico de dactilologia assume e adiciona letra por letra com debounce.
   - **Controles:** `[ESPAÇO]` separa palavras, `[BACKSPACE]` apaga, `C` limpa tudo e `Q` fecha a janela.
 
+### 5. Inferência sobre vídeo pré-gravado
+
+O mesmo pipeline unificado pode processar um MP4 sem webcam:
+
+```bash
+uv run sinala camera-unified \
+  --video data/raw/greetings/videos/v_librasil__Oi__Articulador1__Oi_Articulador1.mp4 \
+  --output-video artifacts/demo_video_unified.mp4 \
+  --no-display
+```
+
+`--video` lê o arquivo, `--output-video` salva o MP4 anotado e `--no-display` evita abrir janela OpenCV em ambientes headless, como Colab.
+### 6. DuoLibras (Plataforma Web Gamificada)
+
+Plataforma web gamificada no estilo Duolingo com inferência 100% no navegador (ONNX Web + MediaPipe Hands) e visualizador 3D interativo da mão com rotação 360°:
+
+```bash
+# 1. Exportar modelos treinados para ONNX e poses 3D (já incluídos no repositório)
+uv run sinala export-onnx --output web/models
+uv run sinala export-poses --output web/data
+
+# 2. Iniciar servidor web local
+uv run sinala serve-web --port 8000
+```
+
+Acesse no navegador: `http://localhost:8000`.
+
+* **Módulo 1:** Alfabeto Manual (Dactilologia A–Z) com feedback visual por retenção temporal (1.2s) e Three.js 3D.
+* **Módulo 2:** Cumprimentos & Saudações em Libras (Oi, Obrigado, Por favor, Sim, Não, Desculpa).
+* **Gamificação:** Sistema de Vidas ❤️, Ofensiva diária 🔥, Pontos de Experiência 💎 e efeitos sonoros via Web Audio API.
+
 ---
 
 ## 5. Testes Automatizados
@@ -152,7 +196,7 @@ A integridade matemática do pipeline, extratores, aumentador de dados, modelos 
 uv run pytest
 ```
 
-Atualmente, **45 testes unitários e de integração** cobrem os módulos críticos do projeto.
+Atualmente, **58 testes unitários e de integração** cobrem os módulos críticos do projeto.
 
 ---
 
