@@ -94,6 +94,87 @@ class FeatureExtractor {
     return output;
   }
 
+  static _fingerState(p, mcp, pip, dip, tip) {
+    const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+    const segSum = d(p[pip], p[mcp]) + d(p[dip], p[pip]) + d(p[tip], p[dip]);
+    const ratio = d(p[tip], p[mcp]) / Math.max(segSum, 1e-6);
+    const rMcp = norm(p[mcp]);
+    const rTip = norm(p[tip]);
+    return {
+      ext: ratio > 0.75 && rTip > rMcp * 1.20,
+      fold: ratio < 0.68 || rTip < rMcp * 1.15
+    };
+  }
+
+  /**
+   * Biomechanical minimal-pair disambiguation (U vs V vs R vs N, M vs W, G vs L vs Q).
+   */
+  static refineAlphabetPrediction(landmarks, isLeftHand, prediction) {
+    if (!landmarks || landmarks.length !== 21 || !prediction || prediction.letter === "?") {
+      return prediction;
+    }
+    const wrist = landmarks[0];
+    const rel = landmarks.map((lm) => [
+      (isLeftHand ? -(lm.x - wrist.x) : lm.x - wrist.x),
+      lm.y - wrist.y,
+      (lm.z || 0) - (wrist.z || 0)
+    ]);
+    const scale = Math.hypot(rel[9][0], rel[9][1], rel[9][2]);
+    if (scale < 1e-6) return prediction;
+    const p = rel.map(([x, y, z]) => [x / scale, y / scale, z / scale]);
+
+    const idx = FeatureExtractor._fingerState(p, 5, 6, 7, 8);
+    const mid = FeatureExtractor._fingerState(p, 9, 10, 11, 12);
+    const rng = FeatureExtractor._fingerState(p, 13, 14, 15, 16);
+    const pnk = FeatureExtractor._fingerState(p, 17, 18, 19, 20);
+
+    let refined = prediction.letter;
+
+    // 1. Two-finger family: Index & Middle extended, Ring & Pinky folded
+    if (idx.ext && mid.ext && rng.fold && pnk.fold) {
+      const dyIdx = p[8][1] - p[5][1];
+      const dyMid = p[12][1] - p[9][1];
+      if (dyIdx > 0.45 && dyMid > 0.45) {
+        refined = "N";
+      } else if (dyIdx < -0.55 && dyMid < -0.55 && p[8][1] < -1.35 && p[12][1] < -1.35) {
+        const dThumb6 = Math.hypot(p[4][0] - p[6][0], p[4][1] - p[6][1], p[4][2] - p[6][2]);
+        const dThumb10 = Math.hypot(p[4][0] - p[10][0], p[4][1] - p[10][1], p[4][2] - p[10][2]);
+        if (!((refined === "K" || refined === "H") && Math.min(dThumb6, dThumb10) < 0.36)) {
+          const mcpDir = (p[5][0] - p[9][0]) >= 0 ? 1.0 : -1.0;
+          const signedSep = (p[8][0] - p[12][0]) * mcpDir;
+          const dXY = Math.hypot(p[8][0] - p[12][0], p[8][1] - p[12][1]);
+          const v1x = p[8][0] - p[5][0], v1y = p[8][1] - p[5][1];
+          const v2x = p[12][0] - p[9][0], v2y = p[12][1] - p[9][1];
+          const cosA = (v1x * v2x + v1y * v2y) / Math.max(Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y), 1e-6);
+          const angDeg = Math.acos(Math.max(-1.0, Math.min(1.0, cosA))) * (180 / Math.PI);
+          if (signedSep < -0.02) {
+            refined = "R";
+          } else if (dXY >= 0.24 || angDeg >= 7.2) {
+            refined = "V";
+          } else {
+            refined = "U";
+          }
+        }
+      }
+    }
+    // 2. Three-finger family: M (down) vs W (up)
+    else if (idx.ext && mid.ext && rng.ext && pnk.fold) {
+      if (p[8][1] - p[5][1] > 0.45 && p[12][1] - p[9][1] > 0.45) refined = "M";
+      else if (p[8][1] - p[5][1] < -0.45 && p[12][1] - p[9][1] < -0.45) refined = "W";
+    }
+    // 3. Index-only family: Q (down) vs L (90-deg thumb)
+    else if (idx.ext && mid.fold && rng.fold && pnk.fold) {
+      if (p[8][1] - p[5][1] > 0.55) refined = "Q";
+      else if (Math.hypot(p[4][0] - p[6][0], p[4][1] - p[6][1]) > 0.75) refined = "L";
+    }
+
+    if (refined !== prediction.letter) {
+      return { ...prediction, letter: refined, confidence: Math.max(prediction.confidence, 0.85) };
+    }
+    return prediction;
+  }
+
   /**
    * Extract 128 normalized features for sequential GRU.
    * 64 floats for left hand, 64 floats for right hand.

@@ -78,16 +78,49 @@
         <div class="card-panel">
           <div class="panel-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="panel-title">Mão 3D</span>
+              <span id="ref-panel-title" class="panel-title">Mão 3D</span>
               <button id="btn-play-motion" class="btn-motion-play" title="Reproduzir movimento do sinal">
                 <span id="motion-icon">▶</span>
                 <span id="motion-text">Ver Movimento</span>
               </button>
             </div>
-            <span style="font-size: 11px; color: var(--blue); font-weight: 700;">Gire 360° com o mouse</span>
+            <span id="ref-panel-hint" style="font-size: 11px; color: var(--blue); font-weight: 700;">Gire 360° com o mouse</span>
           </div>
           <div id="hand-3d-container" class="hand-3d-box">
             <div class="rotator-hint">Arraste para inspecionar em 3D</div>
+          </div>
+          <div id="greeting-video-container" class="greeting-video-box" style="display: none;">
+            <video id="greeting-ref-video" playsinline autoplay loop muted preload="metadata"></video>
+            <div id="greeting-video-badge" class="rotator-hint">Articulador 1 · Dataset de Treinamento</div>
+          </div>
+          <!-- Hand Color / Skin Tone Customizer -->
+          <div id="hand-color-palette" class="hand-color-palette" title="Personalizar cor da pele da mão 3D">
+            <span class="palette-label">Tom da Pele:</span>
+            <div class="palette-swatches" id="skin-swatches">
+              <button class="swatch-btn active" data-color="#E8A082" style="background: #E8A082;" title="Médio"></button>
+              <button class="swatch-btn" data-color="#FBD3B6" style="background: #FBD3B6;" title="Claro"></button>
+              <button class="swatch-btn" data-color="#C67A52" style="background: #C67A52;" title="Moreno"></button>
+              <button class="swatch-btn" data-color="#8D5524" style="background: #8D5524;" title="Escuro"></button>
+              <button class="swatch-btn" data-color="#4A2C18" style="background: #4A2C18;" title="Ébano"></button>
+              <button class="swatch-btn" data-color="#0052FF" style="background: #0052FF;" title="Azul SINALA"></button>
+              <button class="swatch-btn" data-color="#58CC02" style="background: #58CC02;" title="Verde Duolingo"></button>
+              <button class="swatch-btn" data-color="#CE82FF" style="background: #CE82FF;" title="Roxo"></button>
+              <button class="swatch-btn" data-color="#FFC800" style="background: #FFC800;" title="Dourado"></button>
+              <label class="swatch-custom" title="Escolher cor personalizada">
+                <input type="color" id="hand-custom-color" value="#E8A082">
+                <span>🎨</span>
+              </label>
+            </div>
+          </div>
+          <!-- Training Video Controls (Greetings Module) -->
+          <div id="greeting-video-controls" class="hand-color-palette" style="display: none;" title="Alternar articulador e velocidade do vídeo de treinamento">
+            <span class="palette-label">Articulador:</span>
+            <div class="video-control-pills">
+              <button class="video-pill active" data-signer="1" title="Articulador 1">1</button>
+              <button class="video-pill" data-signer="2" title="Articulador 2">2</button>
+              <button class="video-pill" data-signer="3" title="Articulador 3">3</button>
+              <button id="btn-video-speed" class="video-pill speed-pill" title="Alternar velocidade (1x / 0.5x)">1x</button>
+            </div>
           </div>
         </div>
 

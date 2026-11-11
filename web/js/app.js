@@ -147,6 +147,8 @@ class DuoLibrasApp {
     this.currentLesson = null;
     this.challengeIndex = 0;
 
+    this.greetingSigner = 1;
+    this.greetingPlaybackRate = 1.0;
     // Gamification persistence
     this.xp = parseInt(localStorage.getItem("duolibras_xp") || "0", 10);
     this.hearts = parseInt(localStorage.getItem("duolibras_hearts") || "5", 10);
@@ -359,31 +361,91 @@ class DuoLibrasApp {
       this.advanceChallenge();
     };
 
-    // Play / Pause Motion Button for 3D Hand
+    // Play / Pause Motion Button (3D Hand for Alphabet, Training Video for Greetings)
     const playBtn = document.getElementById("btn-play-motion");
     if (playBtn) {
       playBtn.onclick = () => {
         this.audio.playClick();
-        this.hand3d.toggleMotion();
+        const activeChallenge = this.currentLesson && this.currentLesson.challenges[this.challengeIndex];
+        if (activeChallenge && activeChallenge.type === "greeting") {
+          const refVid = document.getElementById("greeting-ref-video");
+          if (refVid) {
+            if (refVid.paused) {
+              refVid.play().catch(() => {});
+              this._updateMotionButtonUI(true, "Reproduzir");
+            } else {
+              refVid.pause();
+              this._updateMotionButtonUI(false, "Reproduzir");
+            }
+          }
+        } else {
+          this.hand3d.toggleMotion();
+        }
       };
     }
 
     this.hand3d.onMotionStateChange = (isPlaying) => {
-      const iconEl = document.getElementById("motion-icon");
-      const textEl = document.getElementById("motion-text");
-      const btn = document.getElementById("btn-play-motion");
-      if (btn) {
-        if (isPlaying) {
-          btn.classList.add("playing");
-          if (iconEl) iconEl.textContent = "⏸";
-          if (textEl) textEl.textContent = "Pausar";
-        } else {
-          btn.classList.remove("playing");
-          if (iconEl) iconEl.textContent = "▶";
-          if (textEl) textEl.textContent = "Ver Movimento";
-        }
+      const activeChallenge = this.currentLesson && this.currentLesson.challenges[this.challengeIndex];
+      if (!activeChallenge || activeChallenge.type === "alphabet") {
+        this._updateMotionButtonUI(isPlaying, "Ver Movimento");
       }
     };
+
+    // Greeting Training Video Controls (Articulador 1 / 2 / 3 + Speed 1x / 0.5x)
+    const signerPills = document.querySelectorAll(".video-pill[data-signer]");
+    signerPills.forEach((pill) => {
+      pill.onclick = () => {
+        this.audio.playClick();
+        signerPills.forEach((p) => p.classList.remove("active"));
+        pill.classList.add("active");
+        this.greetingSigner = parseInt(pill.dataset.signer, 10) || 1;
+        const activeChallenge = this.currentLesson && this.currentLesson.challenges[this.challengeIndex];
+        if (activeChallenge && activeChallenge.type === "greeting") {
+          this._loadGreetingTrainingVideo(activeChallenge.target);
+        }
+      };
+    });
+
+    const speedBtn = document.getElementById("btn-video-speed");
+    if (speedBtn) {
+      speedBtn.onclick = () => {
+        this.audio.playClick();
+        this.greetingPlaybackRate = this.greetingPlaybackRate === 1.0 ? 0.5 : 1.0;
+        speedBtn.textContent = this.greetingPlaybackRate === 1.0 ? "1x" : "0.5x";
+        speedBtn.classList.toggle("slow", this.greetingPlaybackRate < 1.0);
+        const refVid = document.getElementById("greeting-ref-video");
+        if (refVid) refVid.playbackRate = this.greetingPlaybackRate;
+      };
+    }
+
+    // Hand Color / Skin Tone Customizer
+    const savedColor = localStorage.getItem("duolibras_hand_color") || "#E8A082";
+    const swatches = document.querySelectorAll(".swatch-btn");
+    swatches.forEach((swatch) => {
+      if (swatch.dataset.color.toLowerCase() === savedColor.toLowerCase()) {
+        swatches.forEach((s) => s.classList.remove("active"));
+        swatch.classList.add("active");
+      }
+      swatch.onclick = () => {
+        this.audio.playClick();
+        swatches.forEach((s) => s.classList.remove("active"));
+        swatch.classList.add("active");
+        const color = swatch.dataset.color;
+        this.hand3d.setColor(color);
+        const customInput = document.getElementById("hand-custom-color");
+        if (customInput) customInput.value = color;
+      };
+    });
+
+    const customColorInput = document.getElementById("hand-custom-color");
+    if (customColorInput) {
+      customColorInput.value = savedColor;
+      customColorInput.oninput = (e) => {
+        const color = e.target.value;
+        swatches.forEach((s) => s.classList.remove("active"));
+        this.hand3d.setColor(color);
+      };
+    }
 
     // Custom In-App Completion Modal Close Button
     const modalCloseBtn = document.getElementById("btn-modal-close");
@@ -410,6 +472,11 @@ class DuoLibrasApp {
 
   stopPractice() {
     this.stopWebcam();
+    const refVid = document.getElementById("greeting-ref-video");
+    if (refVid) {
+      refVid.pause();
+      refVid.removeAttribute("src");
+    }
     document.getElementById("practice-view").classList.remove("active");
     document.getElementById("feedback-drawer").classList.remove("active");
     document.getElementById("dashboard-view").style.display = "block";
@@ -461,19 +528,78 @@ class DuoLibrasApp {
     const titleEl = document.getElementById("challenge-title");
     const hintEl = document.getElementById("challenge-hint");
 
+    const hand3dBox = document.getElementById("hand-3d-container");
+    const handPalette = document.getElementById("hand-color-palette");
+    const videoBox = document.getElementById("greeting-video-container");
+    const videoControls = document.getElementById("greeting-video-controls");
+    const panelTitle = document.getElementById("ref-panel-title");
+    const panelHint = document.getElementById("ref-panel-hint");
+
     if (challenge.type === "alphabet") {
       titleEl.innerHTML = `Faça o sinal da letra <span style="color: var(--primary);">${challenge.target}</span>`;
       hintEl.textContent = challenge.hint;
+
+      const refVid = document.getElementById("greeting-ref-video");
+      if (refVid) refVid.pause();
+      if (videoBox) videoBox.style.display = "none";
+      if (videoControls) videoControls.style.display = "none";
+      if (hand3dBox) hand3dBox.style.display = "block";
+      if (handPalette) handPalette.style.display = "flex";
+      if (panelTitle) panelTitle.textContent = "Mão 3D";
+      if (panelHint) panelHint.textContent = "Gire 360° com o mouse";
+
+      this.hand3d.resize();
+      this.hand3d.setPose(challenge.target);
     } else {
       titleEl.innerHTML = `Faça o sinal de <span style="color: var(--blue);">${challenge.target}</span>`;
       hintEl.textContent = challenge.hint;
-    }
-    // Set 3D hand pose reference for both Alphabet and Greetings
-    this.hand3d.setPose(challenge.target);
 
+      this.hand3d.pauseMotion();
+      if (hand3dBox) hand3dBox.style.display = "none";
+      if (handPalette) handPalette.style.display = "none";
+      if (videoBox) videoBox.style.display = "block";
+      if (videoControls) videoControls.style.display = "flex";
+      if (panelTitle) panelTitle.textContent = "Vídeo do Treinamento";
+      if (panelHint) panelHint.textContent = "Dataset V-Librasil";
+
+      this._loadGreetingTrainingVideo(challenge.target);
+    }
     document.getElementById("recognition-badge").textContent = "-";
   }
 
+
+  _updateMotionButtonUI(isPlaying, idleLabel = "Ver Movimento") {
+    const iconEl = document.getElementById("motion-icon");
+    const textEl = document.getElementById("motion-text");
+    const btn = document.getElementById("btn-play-motion");
+    if (!btn) return;
+    if (isPlaying) {
+      btn.classList.add("playing");
+      if (iconEl) iconEl.textContent = "⏸";
+      if (textEl) textEl.textContent = "Pausar";
+    } else {
+      btn.classList.remove("playing");
+      if (iconEl) iconEl.textContent = "▶";
+      if (textEl) textEl.textContent = idleLabel;
+    }
+  }
+
+  _loadGreetingTrainingVideo(targetSign) {
+    const refVid = document.getElementById("greeting-ref-video");
+    const badge = document.getElementById("greeting-video-badge");
+    if (!refVid) return;
+    const fileName = `${targetSign}_Articulador${this.greetingSigner}.mp4`;
+    refVid.src = `training-videos/${encodeURIComponent(fileName)}`;
+    refVid.playbackRate = this.greetingPlaybackRate;
+    if (badge) {
+      badge.textContent = `Articulador ${this.greetingSigner} · Dataset de Treinamento`;
+    }
+    refVid.play().then(() => {
+      this._updateMotionButtonUI(true, "Reproduzir");
+    }).catch(() => {
+      this._updateMotionButtonUI(false, "Reproduzir");
+    });
+  }
   updateHoldProgress(percent) {
     document.getElementById("hold-progress-fill").style.width = `${percent}%`;
   }
@@ -559,8 +685,8 @@ class DuoLibrasApp {
     const isLeft = handednessList[0] && handednessList[0][0] && handednessList[0][0].categoryName === "Left";
     if (challenge.type === "alphabet") {
       const features = FeatureExtractor.extractAlphabetFeatures(primaryHand, isLeft);
-      const prediction = await this.onnx.predictAlphabet(features);
-
+      const rawPred = await this.onnx.predictAlphabet(features);
+      const prediction = FeatureExtractor.refineAlphabetPrediction(primaryHand, isLeft, rawPred);
       document.getElementById("recognition-badge").textContent = prediction.letter;
 
       // Match target
@@ -586,7 +712,8 @@ class DuoLibrasApp {
 
       // Analyze instant hand configuration using Alphabet model
       const alphaFeats = FeatureExtractor.extractAlphabetFeatures(primaryHand, isLeft);
-      const alphaPred = await this.onnx.predictAlphabet(alphaFeats);
+      const rawAlphaPred = await this.onnx.predictAlphabet(alphaFeats);
+      const alphaPred = FeatureExtractor.refineAlphabetPrediction(primaryHand, isLeft, rawAlphaPred);
 
       let isMatch = false;
       let displayBadge = challenge.target.substring(0, 2).toUpperCase();

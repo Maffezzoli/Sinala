@@ -14,8 +14,15 @@ from sinala.runtime.duolibras_request_handler import DuoLibrasRequestHandler
 class DuoLibrasWebServer:
     """Serves the static web application with proper MIME types for WASM and ONNX."""
 
-    def __init__(self, web_dir: str | Path = "web", host: str = "127.0.0.1", port: int = 8000) -> None:
+    def __init__(
+        self,
+        web_dir: str | Path = "web",
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        training_videos_dir: str | Path = "data/raw/greetings/videos",
+    ) -> None:
         self.web_dir = Path(web_dir).resolve()
+        self.training_videos_dir = Path(training_videos_dir).resolve()
         self.host = host
         self.port = port
         self.server: ThreadingHTTPServer | None = None
@@ -25,7 +32,11 @@ class DuoLibrasWebServer:
         if not self.web_dir.exists():
             raise FileNotFoundError(f"Diretorio web nao encontrado: {self.web_dir}")
 
-        handler_factory = functools.partial(DuoLibrasRequestHandler, directory=str(self.web_dir))
+        handler_factory = functools.partial(
+            DuoLibrasRequestHandler,
+            directory=str(self.web_dir),
+            training_videos_dir=str(self.training_videos_dir),
+        )
         self.server = ThreadingHTTPServer((self.host, self.port), handler_factory)
         logger.info(f"DuoLibras Web Server rodando em http://{self.host}:{self.port} (diretorio: {self.web_dir})")
 

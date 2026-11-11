@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from sinala.cli import _build_parser
-from sinala.data.alphabet_dataset import ALPHABET_CLASSES, normalize_hand_landmarks
+from sinala.data.alphabet_dataset import ALPHABET_CLASSES, normalize_hand_landmarks, refine_alphabet_prediction
 from sinala.model.alphabet_classifier import (
     AlphabetClassifier,
     load_alphabet_checkpoint,
@@ -191,3 +191,36 @@ def test_cli_alphabet_subparsers() -> None:
     assert args_video.video == "input.mp4"
     assert args_video.output_video == "output.mp4"
     assert args_video.no_display is True
+
+
+def test_refine_alphabet_prediction_disambiguates_v_u_r_and_n() -> None:
+    # Base hand with wrist at origin, middle MCP (9) at y = -1.0, ring & pinky folded
+    base = np.zeros((21, 3), dtype=np.float32)
+    base[5] = [0.16, -1.0, 0.0]
+    base[9] = [-0.02, -1.0, 0.0]
+    # Folded ring (13..16) and pinky (17..20)
+    base[13:17] = [[-0.12, -0.95, 0.0], [-0.14, -0.90, -0.1], [-0.12, -0.65, -0.1], [-0.10, -0.55, -0.1]]
+    base[17:21] = [[-0.22, -0.90, 0.0], [-0.24, -0.85, -0.1], [-0.22, -0.62, -0.1], [-0.20, -0.52, -0.1]]
+    base[1:5] = [[0.10, -0.35, 0.0], [0.12, -0.60, -0.1], [0.02, -0.72, -0.15], [-0.06, -0.75, -0.15]]
+
+    # 1. Letter V: index & middle spread apart in V, even if raw MLP mispredicted 'U'
+    hand_v = base.copy()
+    hand_v[6:9] = [[0.22, -1.35, 0.0], [0.27, -1.65, 0.0], [0.32, -1.92, 0.0]]
+    hand_v[10:13] = [[-0.06, -1.35, 0.0], [-0.10, -1.68, 0.0], [-0.14, -1.96, 0.0]]
+    letter_v, conf_v = refine_alphabet_prediction(hand_v, "U", 0.55)
+    assert letter_v == "V"
+    assert conf_v >= 0.85
+
+    # 2. Letter U: index & middle parallel and together
+    hand_u = base.copy()
+    hand_u[6:9] = [[0.15, -1.35, 0.0], [0.15, -1.65, 0.0], [0.15, -1.92, 0.0]]
+    hand_u[10:13] = [[0.02, -1.35, 0.0], [0.03, -1.68, 0.0], [0.03, -1.96, 0.0]]
+    letter_u, _ = refine_alphabet_prediction(hand_u, "V", 0.55)
+    assert letter_u == "U"
+
+    # 3. Letter R: index crosses past middle horizontally
+    hand_r = base.copy()
+    hand_r[6:9] = [[0.08, -1.35, 0.0], [0.00, -1.65, 0.0], [-0.06, -1.92, 0.0]]
+    hand_r[10:13] = [[0.02, -1.35, 0.0], [0.06, -1.68, 0.0], [0.09, -1.96, 0.0]]
+    letter_r, _ = refine_alphabet_prediction(hand_r, "U", 0.55)
+    assert letter_r == "R"

@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from loguru import logger
 
-from sinala.data.alphabet_dataset import normalize_hand_landmarks
+from sinala.data.alphabet_dataset import normalize_hand_landmarks, refine_alphabet_prediction
 from sinala.data.hand_landmark_extractor import HandLandmarkExtractor
 from sinala.model.alphabet_classifier import AlphabetClassifier, load_alphabet_checkpoint
 from sinala.runtime.word_builder import WordBuilder
@@ -118,7 +118,10 @@ class AlphabetCameraApp:
         norm_coords = normalize_hand_landmarks(coords, is_left_hand=is_left_hand)
 
         tensor_in = torch.from_numpy(norm_coords).to(self.device)
-        return self.model.predict_letter(tensor_in, threshold=self.confidence_threshold)
+        letter, conf = self.model.predict_letter(tensor_in, threshold=self.confidence_threshold)
+        if letter != "?":
+            letter, conf = refine_alphabet_prediction(coords, letter, conf)
+        return letter, conf
 
     def _draw_hud(self, frame: np.ndarray, letter: str, conf: float, fps: float) -> None:
         """Render minimal, generic transcription HUD overlay."""

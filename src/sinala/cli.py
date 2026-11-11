@@ -286,7 +286,7 @@ def _download_greetings(args: argparse.Namespace) -> None:
 
 def _train_alphabet(args: argparse.Namespace) -> None:
     logger.info(f"Carregando dataset de dactilologia de {args.data_dir}...")
-    train_dataset = LibrasAlphabetDataset(args.data_dir, split="train", train_ratio=args.train_ratio, seed=args.seed)
+    train_dataset = LibrasAlphabetDataset(args.data_dir, split="train", train_ratio=args.train_ratio, seed=args.seed, augment=True)
     val_dataset = LibrasAlphabetDataset(args.data_dir, split="val", train_ratio=args.train_ratio, seed=args.seed)
     logger.info(f"Amostras de treino: {len(train_dataset)} | Validação/Teste: {len(val_dataset)}")
 
