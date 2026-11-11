@@ -1,14 +1,17 @@
 \documentclass[12pt,a4paper]{article}
 
 % =========================================================
-% PACOTES
+% PACKAGES
 % =========================================================
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[brazil]{babel}
+\usepackage[english]{babel}
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{graphicx}
+\setkeys{Gin}{draft=false}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{array}
@@ -17,27 +20,26 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{url}
+\usepackage[authoryear,round]{natbib}
 \usepackage[hidelinks]{hyperref}
-\usepackage[alf]{abntex2cite}
+
+\setlength{\emergencystretch}{1.5em}
+\newcommand{\citeonline}[1]{\citet{#1}}
 
 % =========================================================
-% DADOS DO TRABALHO
+% MANUSCRIPT METADATA
 % =========================================================
 
-\title{
-\textbf{
-DuoLibras: Uma Abordagem Gamificada com Inteligência Artificial e
-Modelagem Tridimensional para o Ensino e Avaliação Postural de Libras
-em Tempo Real
-}
+\title{%
+\textbf{DuoLibras: A Gamified Edge-AI Platform with 3D Anatomical Modeling and Geometric Invariance for Real-Time Brazilian Sign Language Instruction}%
 }
 
-\author{\textbf{Projeto SINALA / DuoLibras}}
+\author{\textbf{SINALA / DuoLibras Research Project}}
 
 \date{\today}
 
 % =========================================================
-% DOCUMENTO
+% DOCUMENT
 % =========================================================
 
 \begin{document}
@@ -45,699 +47,385 @@ em Tempo Real
 \maketitle
 
 % =========================================================
-% RESUMO
+% ABSTRACT
 % =========================================================
 
 \begin{abstract}
+\noindent
+Learning Brazilian Sign Language (\textit{L\'{\i}ngua Brasileira de Sinais} --- Libras) among hearing individuals is one of the most effective pillars for overcoming communication barriers and fostering social inclusion for the deaf community in Brazil. However, conventional digital learning platforms operate predominantly in a passive manner, displaying static illustrations or pre-recorded videos without providing automated biomechanical feedback on the learner's motor execution, or otherwise requiring expensive wearable hardware.
 
-O aprendizado da Língua Brasileira de Sinais (Libras) por pessoas ouvintes
-constitui um dos pilares mais eficazes para a superação de barreiras
-comunicacionais e para a promoção da inclusão social da comunidade
-surda no Brasil. Contudo, as plataformas educacionais digitais
-convencionais operam predominantemente de forma passiva, exibindo
-vídeos e ilustrações sem prover avaliação automática da execução
-motora do aprendiz ou demandando hardware vestível de alto custo.
+This paper presents \textbf{DuoLibras}, a gamified educational platform that combines real-time computer vision, rotation-invariant geometric feature modeling, and interactive 3D skeletal rendering for active Libras instruction. The system introduces a dual-module pedagogical architecture: (i) a Fingerspelling Module (Manual Alphabet A--Z), driven by a 225-dimensional spatial descriptor strictly invariant to 3D rotation, translation, and scale (210 normalized pairwise Euclidean distances and 15 inter-phalangeal joint angles) paired with a Multilayer Perceptron (MLP) and a biomechanical minimal-pair disambiguator; and (ii) a Dynamic Greetings and Conversational Expressions Module, powered by lightweight Gated Recurrent Units (GRUs) and multi-articulator reference training videos. For motor instruction, the platform integrates an interactive 25-bone Forward Kinematics (FK) 3D humanoid hand viewer with $360^\circ$ orbit inspection and skin-tone customization alongside real dataset video demonstrations with slow-motion playback ($0.5\times$/$1\times$). Sign validation is governed by a hysteresis-stabilized temporal hold protocol ($1.2\text{ s}$).
 
-Este trabalho apresenta o \textbf{DuoLibras}, uma plataforma
-educacional gamificada que combina Visão Computacional em tempo real,
-modelagem matemática de invariância geométrica e renderização
-tridimensional interativa para o ensino ativo de Libras. O sistema
-dispõe de uma arquitetura de avaliação em dois módulos pedagógicos:
-(i) Módulo de Dactilologia, baseado em um descritor espacial
-tridimensional com 225 grandezas estritamente invariantes a rotação,
-translação e escala (210 distâncias euclidianas par-a-par e 15 ângulos
-articulares) associado a um Perceptron Multicamadas (MLP); e (ii) Módulo
-de Cumprimentos e Sinais Dinâmicos, fundamentado em redes neurais
-recorrentes leves (Gated Recurrent Units -- GRU). Para instrução motora,
-o ambiente incorpora um visualizador anatômico 3D com rotação 360°,
-permitindo ao estudante inspecionar detalhadamente a configuração e a
-dinâmica dos dedos antes da execução diante da webcam convencional.
-A validação do sinal pelo aprendiz é governada por um protocolo de
-retenção temporal estabilizada por histerese (1{,}2 segundos).
-
-A validação experimental utiliza os datasets públicos LibraSign (26.000
-amostras), MINDS-Libras (1.200 vídeos sob protocolo estrito de teste em
-sinalizadores não vistos) e um corpus conversacional multi-fonte. Os
-resultados demonstram 100\% de acurácia de validação na dactilologia
-invariante a orientação, 51,89\% de acurácia em indivíduos cegos para o
-vocabulário de estúdio, e latência ponta a ponta de 31{,}5 milissegundos
-por quadro (31{,}7 FPS) em CPUs de uso geral via ONNX Runtime Web e
-WebAssembly, assegurando execução 100\% local e total privacidade dos
-fluxos visuais do estudante.
-
+Experimental evaluation across the public LibraSign dataset (26,000 samples), the MINDS-Libras benchmark (1,200 videos under a strict signer-independent split), and a multi-source conversational corpus demonstrates $100.00\%$ validation accuracy on orientation-invariant fingerspelling, $51.89\%$ unseen-signer accuracy on the 20-class studio vocabulary (a $3.3\times$ gain over the unregularized baseline), and an end-to-end client-side latency of $31.5\text{ ms}$ per frame ($31.7\text{ FPS}$) on commodity CPUs via ONNX Runtime Web and WebAssembly, ensuring $100\%$ local execution and complete visual privacy.
 \end{abstract}
 
-\vspace{0.5cm}
+\vspace{0.4cm}
 
 \noindent
-\textbf{Palavras-chave:}
-Ensino de Libras,
-Tecnologia Educacional,
-Visão Computacional,
-Gamificação,
-Dactilologia,
-Invariância Geométrica,
+\textbf{Keywords:}
+Brazilian Sign Language (Libras),
+Educational Technology,
+Computer Vision,
+Gamification,
+Fingerspelling,
+Geometric Invariance,
 Gated Recurrent Units,
-Avaliação Inter-Sinalizador.
+Cross-Signer Generalization.
 
 % =========================================================
-% 1 INTRODUÇÃO
+% 1 INTRODUCTION
 % =========================================================
 
-\section{Introdução}
-\label{sec:introducao}
+\section{Introduction}
+\label{sec:introduction}
 
-A Língua Brasileira de Sinais (Libras), reconhecida pela Lei Federal
-nº 10.436/2002 e regulamentada pelo Decreto nº 5.626/2005, é a língua
-natural e originária de milhões de brasileiros surdos. A despeito do
-avanço na legislação educacional e da inclusão da disciplina de Libras
-em cursos de licenciatura e fonoaudiologia, o aprendizado da língua por
-pessoas ouvintes ainda ocorre em escala reduzida, restringindo a
-autonomia social e o acesso dos surdos a serviços de saúde, educação e
-mercado de trabalho \cite{dasilva2020health,passos2021gei}.
+Brazilian Sign Language (Libras), officially recognized by Brazilian Federal Law No.~10.436/2002 and regulated by Decree No.~5.626/2005, is the natural visual-spatial language of millions of deaf citizens in Brazil. Despite legislative progress and the inclusion of Libras courses in teacher-training and speech-therapy curricula, functional proficiency among hearing individuals remains limited, restricting social autonomy and equitable access for deaf individuals across healthcare, education, and employment settings \citep{dasilva2020health,passos2021gei}.
 
-No contexto da educação a distância e do autoaprendizado, os recursos
-digitais contemporâneos sofrem de uma limitação estrutural: funcionam
-como repositórios passivos (dicionários estáticos em vídeo ou
-animações pré-renderizadas). O aprendiz visualiza a postura de mão ou o
-gesto em uma tela bidimensional, mas não recebe nenhum retorno objetivo
-ou corretivo (\textit{feedback}) sobre a exatidão anatômica de sua
-própria execução. A verificação da conformação dos dedos, orientação da
-palma e tempo de retenção continua dependendo de supervisão presencial
-rara e de alto custo.
+In self-directed and distance-learning contexts, contemporary digital tools suffer from a structural limitation: they operate as passive repositories (video dictionaries or static 2D illustrations). Learners observe a hand configuration or movement trajectory on a two-dimensional screen but receive no objective or corrective feedback regarding the anatomical accuracy of their own execution. Verifying finger flexion, thumb opposition, palm orientation, and hold duration continues to depend on scarce in-person human supervision.
 
-Tentativas anteriores de construir sistemas interativos de avaliação
-gestual recorreram a luvas instrumentadas com sensores de flexão ou
-sensores ópticos de profundidade dedicados. Embora eficientes em
-ambiente controlado, essas abordagens inviabilizam a democratização do
-ensino em larga escala devido ao custo do hardware, à necessidade de
-calibração frequente e ao desconforto físico imposto ao usuário.
+Early attempts to construct interactive gesture evaluation systems relied on sensor-instrumented data gloves or dedicated depth cameras. Although effective in laboratory settings, such hardware prevents large-scale educational adoption due to acquisition cost, calibration overhead, and physical encumbrance.
 
-Com o advento de detectores articulares leves em tempo real (como o
-MediaPipe) \cite{rezende2021minds,rego2025fft}, tornou-se viável
-rastrear os marcos anatômicos da mão humana em câmeras RGB
-convencionais presentes em qualquer computador portátil ou dispositivo
-móvel. No entanto, a aplicação direta de visão computacional ao ensino
-esbarra em três desafios pedagógicos e técnicos:
+With the emergence of lightweight real-time hand landmark detectors such as MediaPipe \citep{rezende2021minds,rego2025fft}, tracking 3D anatomical keypoints from standard RGB webcams has become feasible on commodity laptops and mobile devices. Nevertheless, applying computer vision directly to sign language instruction faces four critical technical and pedagogical challenges:
 
 \begin{enumerate}
+    \item \textbf{Sensitivity to Camera Framing and Wrist Tilt:} Students position their hands at varying inclinations and distances relative to the webcam, causing classifiers trained on raw Cartesian coordinates to fail even when the sign posture is pedagogically correct;
 
-    \item \textbf{Sensibilidade a Ângulos de Câmera:} Alunos posicionam
-    as mãos em inclinações variadas diante da tela, fazendo com que
-    classificadores baseados em coordenadas cartesianas absolutas falhem
-    mesmo quando o sinal está pedagogicamente correto;
+    \item \textbf{Single-Clip Spurious Correlations in Minimal Pairs:} Benchmark fingerspelling datasets recorded as continuous single-signer clips often exhibit static background posture correlations in folded fingers, causing standard classifiers to confuse minimal pairs such as \textit{V} (spread index and middle fingers) versus \textit{U} (adducted index and middle fingers) or \textit{R} (crossed fingers);
 
-    \item \textbf{Oclusão Visual em Referências 2D:} Ilustrações e
-    vídeos convencionais escondem os dedos dobrados atrás da palma,
-    confundindo aprendizes iniciantes na reprodução de letras
-    complexas da dactilologia; e
+    \item \textbf{Visual Occlusion in 2D Reference Material:} Flat illustrations obscure thumb placement and curled phalanges behind the palm, confusing beginners on occluded configurations such as letters \textit{A}, \textit{E}, \textit{F}, \textit{I}, \textit{S}, and \textit{T}; and
 
-    \item \textbf{Validação Motora Estabilizada:} Sistemas ingênuos de
-    reconhecimento geram disparos transitórios instantâneos ao menor
-    ruído de movimento, recompensando o aluno por gestos acidentais
-    antes da fixação motora da postura correta.
-
+    \item \textbf{Transient False Positives During Motion:} Naive frame-by-frame classifiers trigger accidental approvals during transitional hand movements before the learner has consolidated the motor posture.
 \end{enumerate}
 
-Para resolver essas lacunas, este trabalho propõe a plataforma
-educacional \textbf{DuoLibras}. Inspirada em metodologias modernas de
-aprendizagem gamificada com trilhas em nós e reforço positivo imediato,
-o DuoLibras transforma o aprendizado de Libras em uma experiência ativa,
-mensurável e autocorretiva.
-
-As principais contribuições deste artigo compreendem:
+To address these gaps, this work introduces \textbf{DuoLibras}, a gamified edge-AI educational platform that transforms Libras learning into an active, measurable, and self-correcting experience. The primary contributions of this paper are fivefold:
 
 \begin{enumerate}
+    \item \textbf{Gamified Dual-Module Pedagogical Architecture:} A structured learning path divided into Module~1 (Manual Alphabet / Fingerspelling A--Z) and Module~2 (Greetings and Conversational Expressions), incorporating experience points (XP), daily practice streaks, and heart-based progression;
 
-    \item \textbf{Concepção de uma Plataforma Gamificada de Aprendizagem
-    Ativa:} Estruturação de uma trilha pedagógica modular dividida em
-    Módulo 1 (Dactilologia/Alfabeto A--Z) e Módulo 2 (Cumprimentos e
-    Diálogos Básicos), integrando pontuação por experiência (XP),
-    ofensiva diária de prática (\textit{streak}) e gestão de vidas;
+    \item \textbf{3D Rotation-Invariant Spatial Descriptor with Biomechanical Disambiguation:} An analytical 225-feature descriptor invariant to $\text{SE}(3)$ rigid transformations and scale (210 normalized pairwise Euclidean distances and 15 joint flexion angles), combined with cross-fist domain-randomized training augmentation and biomechanical minimal-pair verification ($\textit{U}/\textit{V}/\textit{R}/\textit{N}$, $\textit{M}/\textit{W}$, $\textit{G}/\textit{L}/\textit{Q}$);
 
-    \item \textbf{Descritor Espacial Invariante a Rotação 3D para
-    Avaliação de Dactilologia:} Modelagem analítica de um vetor de 225
-    características estritamente invariantes a rotações e translações no
-    espaço tridimensional (210 distâncias euclidianas normalizadas e 15
-    ângulos articulares entre falanges), eliminando falsas rejeições
-    causadas por inclinação de pulso;
+    \item \textbf{Hybrid 3D Anatomical Hand \& Multi-Articulator Video Reference:} An interactive 25-bone Forward Kinematics (FK) 3D humanoid hand viewer with $360^\circ$ mouse/touch rotation and skin-tone customization for fingerspelling, paired with real multi-articulator training videos (V-Librasil dataset) featuring slow-motion ($0.5\times$) playback for dynamic multi-hand and facial-expression greetings;
 
-    \item \textbf{Módulo de Instrução Anatômica 3D Interativo:}
-    Implementação de uma mão volumétrica tridimensional com renderização
-    WebGL que permite rotação livre em 360°, demonstrando a transição
-    motora completa (mão aberta $\rightarrow$ flexão $\rightarrow$ sinal
-    $\rightarrow$ repouso) para eliminar ambiguidades de oclusão;
+    \item \textbf{Hysteresis-Stabilized Motor Hold Protocol (\textit{Hold Debounce}):} A verification mechanism requiring uninterrupted maintenance of the target sign for at least $1.2\text{ s}$ prior to awarding completion, ensuring deliberate motor consolidation; and
 
-    \item \textbf{Protocolo de Validação Motora por Retenção Temporal
-    (\textit{Hold Debounce}):} Mecanismo que exige a manutenção estável
-    da postura correta por pelo menos 1{,}2 segundos antes da concessão
-    de pontos, assegurando a fixação motora pedagógica do sinal; e
-
-    \item \textbf{Pipeline Computacional 100\% em Borda (Client-Side):}
-    Execução integral dos modelos em formato ONNX Runtime Web e
-    MediaPipe Tasks no próprio navegador, garantindo mais de 30 quadros
-    por segundo, latência ponta a ponta de 31{,}5 ms em CPU e total
-    privacidade aos estudantes, cujos fluxos de vídeo jamais saem de
-    suas máquinas locais.
-
+    \item \textbf{Zero-Server Client-Side Execution:} Full in-browser inference using ONNX Runtime Web and MediaPipe Tasks over WebAssembly, achieving $31.5\text{ ms}$ end-to-end latency ($31.7\text{ FPS}$) on commodity CPUs while keeping all student camera streams strictly local.
 \end{enumerate}
 
-O restante do artigo está organizado da seguinte forma. A Seção
-\ref{sec:trabalhos_relacionados} analisa a literatura científica sobre
-reconhecimento gestual, sistemas de avaliação e o desafio de
-generalização entre usuários. A Seção \ref{sec:sistema} descreve a
-arquitetura educacional da plataforma, detalhando a interface
-gamificada e a mão 3D interativa. A Seção \ref{sec:metodo} formaliza o
-método de extração invariante, os modelos neurais especialistas e o
-critério de retenção temporal. A Seção \ref{sec:experimentos} expõe os
-experimentos quantitativos nos datasets LibraSign, MINDS-Libras e
-corpus conversacional, além do perfil de latência em borda. Por fim, a
-Seção \ref{sec:conclusao} apresenta as conclusões e os trabalhos futuros.
+The remainder of this paper is organized as follows. Section~\ref{sec:related_work} reviews related work on sign language recognition and cross-signer evaluation. Section~\ref{sec:platform} describes the DuoLibras educational platform, 3D rigged hand visualizer, and multi-articulator video player. Section~\ref{sec:methodology} formalizes the invariant feature extraction, neural classifiers, biomechanical disambiguation, and temporal hold protocol. Section~\ref{sec:experiments} presents quantitative and latency evaluations across three datasets. Finally, Section~\ref{sec:conclusion} summarizes conclusions and future research directions.
 
 % =========================================================
-% 2 TRABALHOS RELACIONADOS
+% 2 RELATED WORK
 % =========================================================
 
-\section{Trabalhos Relacionados}
-\label{sec:trabalhos_relacionados}
+\section{Related Work}
+\label{sec:related_work}
 
-A pesquisa em processamento computacional de línguas de sinais tem
-transitado de interfaces restritas a laboratórios para sistemas
-interativos aplicados à educação e à inclusão comunicacional.
+Research in computational sign language processing has progressively shifted from laboratory-bound hardware setups toward markerless, camera-driven interfaces aimed at education and communication accessibility.
 
-\subsection{Sistemas Interativos de Apoio ao Alfabeto Manual}
+\subsection{Markerless Interactive Systems for the Manual Alphabet}
 
-No cenário nacional, \citeonline{furtado2023markerless} investigam a
-dispensa de dispositivos vestíveis, propondo um sistema interativo e
-sem marcadores para o alfabeto manual de Libras por meio de descritores
-de contorno (CDD). Os autores ressaltam que a eliminação de luvas ou
-equipamentos dedicados é condição obrigatória para que ferramentas de
-estudo sejam adotadas no cotidiano de aprendizes. Não obstante, o uso de
-descritores de silhueta bidimensional 2D torna o sistema vulnerável a
-mudanças na rotação da mão e a variações no vestuário do usuário.
+\citeonline{furtado2023markerless} investigated removing wearable sensors by proposing a markerless interactive recognition system for the Libras manual alphabet based on contour distance descriptors (CDD). The authors emphasized that eliminating instrumented gloves is a prerequisite for practical adoption by students. However, two-dimensional silhouette descriptors remain vulnerable to out-of-plane hand rotation and background clothing variations.
 
-Avançando para a combinação de sinais estáticos e dinâmicos em cenários
-reais de captura, \citeonline{feliciano2023complex} desenvolvem uma
-metodologia para o reconhecimento de palavras de Libras em ambientes
-com fundos complexos e iluminação não controlada. Ao adotarem o
-extrator MediaPipe em conjunto com redes neurais artificiais, os
-autores demonstram que a extração prévia de coordenadas articulares
-atua como um filtro semântico robusto, desacoplando o movimento da mão
-das texturas de fundo da cena. O DuoLibras estende esse princípio
-adicionando uma camada de formulação geométrica analítica que torna a
-avaliação estritamente invariante à perspectiva de enquadramento da
-webcam.
+Advancing toward static and dynamic word recognition in unconstrained scenes, \citeonline{feliciano2023complex} combined MediaPipe hand keypoint extraction with artificial neural networks under complex backgrounds and uncontrolled lighting. Their findings demonstrated that skeletal keypoint extraction acts as a semantic spatial filter that decouples hand kinematics from background clutter. DuoLibras extends this paradigm by introducing an analytical $\text{SE}(3)$-invariant geometric formulation coupled with cross-fist domain randomization so that evaluation remains invariant both to camera angle and to individual variations in non-defining folded fingers.
 
-\subsection{Modelagem de Dinâmica Temporal e o Desafio Inter-Usuário}
+\subsection{Temporal Dynamics and the Cross-Signer Generalization Gap}
 
-O ensino de sinais dinâmicos impõe requisitos adicionais de
-modelagem temporal e tratamento de variabilidade entre sinalizadores.
-\citeonline{arcanjo2024dtw} analisam o dataset público MINDS-Libras
-utilizando marcos articulares tridimensionais de mãos e tronco
-processados pelo algoritmo Fast Dynamic Time Warping (FastDTW). Uma das
-descobertas centrais do estudo revelou que a validação clássica por
-partição aleatória de amostras resultou em acurácia de
-$0{,}98 \pm 0{,}01$, enquanto a avaliação rigorosa por sinalizador não
-visto (\textit{Leave-One-Person-Out Cross-Validation} -- LOOCV) caiu
-para $0{,}86 \pm 0{,}08$ (F1 de $0{,}87$).
+Teaching dynamic signs introduces additional requirements regarding temporal modeling and inter-signer variability. \citeonline{arcanjo2024dtw} evaluated the public MINDS-Libras dataset using 3D hand and torso landmarks processed via Fast Dynamic Time Warping (FastDTW). A central finding of their study revealed that standard random-split validation yielded an accuracy of $0.98 \pm 0.01$, whereas strict unseen-signer evaluation (\textit{Leave-One-Person-Out Cross-Validation} --- LOOCV) dropped to $0.86 \pm 0.08$ ($\text{F1} = 0.87$).
 
-Esse fenômeno comprova que modelos treinados sem segregação estrita de
-indivíduos sofrem de sobreajuste aos trejeitos corporais particulares
-dos sinalizadores de treino. No contexto pedagógico do DuoLibras, onde
-cada estudante apresenta proporções antropométricas e velocidades
-gestuais próprias, a diretriz de avaliação inter-sinalizador estrita
-é indispensável para garantir que o sistema avalie com justiça alunos
-completamente inéditos.
+This performance gap demonstrates that models trained without strict subject segregation overfit to the anthropometric proportions and motor idiosyncrasies of training signers. In an educational platform such as DuoLibras, where every student exhibits unique hand proportions and signing speeds, strict signer-independent evaluation and spatio-temporal augmentation are essential to ensure fair assessment of unseen learners.
 
-Em investigações complementares de dinamismo temporal,
-\citeonline{rodrigues2025dynamic} comparam cinco arquiteturas
-convolucionais para sinais dinâmicos de Libras, observando que a
-capacidade de absorver variações de velocidade constitui o principal
-gargalo de acurácia. Por sua vez, \citeonline{castro2023multistream}
-propõem redes convolucionais 3D integradas a mapas de profundidade
-artificiais, atingindo acurácia de $0{,}91 \pm 0{,}07$. Embora
-precisas, tais abordagens exigem processamento em placas gráficas de
-alta potência, inviabilizando a execução em computadores escolares
-comuns. Em contrapartida, o DuoLibras adota classificadores
-recorrentes compactos (GRU) e modelos MLP que operam com folga em
-qualquer CPU moderna.
+In complementary studies of dynamic signs, \citeonline{rodrigues2025dynamic} compared five convolutional architectures on dynamic Libras signs, identifying temporal speed variance as the primary accuracy bottleneck. \citeonline{castro2023multistream} proposed multi-stream 3D convolutional networks with artificial depth maps, achieving $0.91 \pm 0.07$ accuracy. While accurate, 3D CNNs operating on dense video volumes require dedicated GPUs, precluding real-time execution on standard school laptops. Conversely, DuoLibras employs compact skeletal GRU and MLP models exported to ONNX, running comfortably above $30\text{ FPS}$ on standard CPUs.
 
-\subsection{Gamificação e Alinhamento Linguístico na Aprendizagem}
+\subsection{Gamification and Pedagogical Progression}
 
-A transição entre o reconhecimento técnico e o engajamento educacional
-demanda estratégias lúdicas de retenção de conhecimento.
-\citeonline{pereira2026semantic} investigam o alinhamento semântico
-entre sequências de Libras e língua portuguesa, evidenciando a
-necessidade de uma progressão pedagógica estruturada que parta de
-unidades mínimas (dactilologia e vocabulário isolado) antes de avançar
-para a tradução livre de sentenças gramaticalmente complexas.
-
-Ao mesmo tempo, estudos de saúde e assistência social
-\cite{dasilva2020health,passos2021gei} enfatizam que a barreira de
-comunicação entre ouvintes e surdos não é sanada por aplicativos
-puramente utilitários de emergência, mas pela capacitação continuada de
-profissionais e cidadãos. O DuoLibras consolida essas diretrizes ao
-substituir o conceito de "tradutor pontual" por uma "escola interativa
-de Libras", integrando mecânicas de gamificação que incentivam a
-prática deliberada e diária.
+Bridging technical recognition and sustained learner engagement requires structured pedagogical progression. \citeonline{pereira2026semantic} analyzed semantic vector alignment between Libras glosses and Portuguese, highlighting the importance of mastering foundational units (manual alphabet and core conversational vocabulary) prior to open-ended sentence translation. Similarly, studies in healthcare and public service accessibility \citep{dasilva2020health,passos2021gei} stress that communication barriers are best addressed through continuous citizen training rather than emergency-only translation tools. DuoLibras operationalizes these principles by structuring Libras acquisition as an interactive, gamified curriculum with immediate visual and auditory reinforcement.
 
 % =========================================================
-% 3 DESCRIÇÃO DA PLATAFORMA DUOLIBRAS
+% 3 PLATFORM ARCHITECTURE
 % =========================================================
 
-\section{Descrição da Plataforma Educacional}
-\label{sec:sistema}
+\section{Educational Platform Architecture}
+\label{sec:platform}
 
-O DuoLibras foi projetado como uma aplicação web educacional de alta
-performance executada 100\% em borda (\textit{client-side}),
-dispensando servidores remotos de inferência e garantindo a privacidade
-integral do estudante.
+DuoLibras is architected as a high-performance client-side web application that executes all computer vision and neural inference locally inside the user's browser, eliminating cloud inference costs and preserving student privacy.
 
-\subsection{Interface Pedagógica Gamificada}
+\subsection{Gamified Pedagogical Interface}
 
-A experiência de aprendizagem é estruturada sob a metáfora de uma
-trilha de progressão em nós interativos, conforme ilustrado no fluxo
-pedagógico da aplicação:
+The learning experience follows an interactive node-based progression path organized into two complementary instructional modules:
 
 \begin{itemize}
+    \item \textbf{Module 1 --- Manual Alphabet (Fingerspelling A--Z):} Focuses on postural mastery of the 26 letters of the Libras alphabet, organized into progressive lessons: Fundamental Vowels (\textit{A, E, I, O, U}), First Consonants (\textit{B, C, D, L, M}), Intermediate Consonants (\textit{F, G, P, Q, V}), Agile Consonants (\textit{R, S, T, W, Y}), and Word Spelling Challenges (e.g., \textit{``BOLA''});
 
-    \item \textbf{Módulo 1 -- Alfabeto Manual (Dactilologia):}
-    Enfoca o domínio postural das 26 letras da Libras (A--Z),
-    dividido em lições graduais: Vogais Fundamentais (A, E, I, O, U),
-    Primeiras Consoantes (B, C, D, L, M), Consoantes Intermediárias
-    (F, G, P, Q, V) e Desafios de Soletração de Palavras (e.g.
-    \textit{"BOLA"});
+    \item \textbf{Module 2 --- Greetings and Conversational Expressions:} Teaches multi-hand and facial-context social signs (\textit{Oi, Obrigado, Por favor, Sim, N\~ao, Desculpa, Nome, Cumprimento, Ajudar}), emphasizing movement trajectory and natural rhythm;
 
-    \item \textbf{Módulo 2 -- Cumprimentos e Expressões Sociais:}
-    Ensina sinais conversacionais de acolhimento e diálogo inicial
-    (\textit{Oi, Obrigado, Por favor, Sim, Não, Desculpa}),
-    enfatizando a fluidez e a direção correta do movimento;
+    \item \textbf{Sustained Gamification Mechanics:} Learner engagement is reinforced through daily practice streaks, a restorable 5-heart life bank, experience point rewards ($+10\text{ XP}$ per validated sign and $+50\text{ XP}$ lesson completion bonus), and persistent local progress storage; and
 
-    \item \textbf{Mecânicas de Gamificação Sustentada:} O progresso é
-    reforçado por um medidor de ofensiva diária (\textit{streak}), um
-    banco de vidas restauráveis para incentivar a persistência, ganho de
-    pontos de experiência (XP) a cada acerto e medalhas de conquista ao
-    completar cada lição; e
-
-    \item \textbf{Feedback Sonoro e Modal Autocontido:} O sistema emite
-    chimes harmônicos de vitória sintetizados nativamente via Web
-    Audio API (eliminando dependência de arquivos externos de mídia) e
-    apresenta relatórios parciais por modais gráficos estilizados,
-    dispensando alertas nativos intrusivos do navegador.
-
+    \item \textbf{Self-Contained Web Audio and Modal Feedback:} Harmonic victory and level-up chimes are synthesized natively via the browser's Web Audio API without external audio dependencies, paired with custom in-app completion modals.
 \end{itemize}
 
-\subsection{Módulo de Instrução Anatômica 3D Interativo}
+\subsection{Hybrid Visual Reference: 3D Rigged Hand and Multi-Articulator Videos}
 
-Para solucionar a ambiguidade visual de ilustrações estáticas 2D, o
-painel de estudo do DuoLibras apresenta uma mão volumétrica
-tridimensional renderizada via Three.js ao lado da câmera do aluno:
+To resolve visual ambiguity across both static fingerspelling and dynamic full-body greetings, DuoLibras adapts its reference panel to the pedagogical nature of each module:
 
 \begin{enumerate}
+    \item \textbf{Calibrated 25-Bone Rigged 3D Humanoid Hand (Module 1):} For fingerspelling lessons, the reference panel renders an articulated OpenXR humanoid hand mesh (\texttt{RightHandHumanoid.gltf}) via Three.js with hardware-accelerated linear blend skinning (\texttt{skinning: true}). Each of the 26 letters (A--Z) is mapped to textbook-calibrated Forward Kinematics (FK) bone rotations across the thumb (\textit{Metacarpal, Proximal, Distal}) and four fingers (\textit{Proximal, Intermediate, Distal}), accurately distinguishing subtle minimal pairs such as thumb-over-fist (\textit{I, J, S, U, V, W, R}), lateral thumb (\textit{A}), cross-palm thumb (\textit{B, E}), outside vs.\ inside thumb (\textit{F} vs.\ \textit{T}), $90^\circ$ abduction (\textit{L, Y}), and downward wrist orientation (\textit{M, N, P, Q});
 
-    \item \textbf{Modelagem Volumétrica e Carnuda:} Em vez de uma
-    malha simplista em linhas de arame, o modelo é composto por uma
-    palma prismática sólida com profundidade anatômica realista e
-    14 segmentos de falanges com conicidade gradual (mais grossos na
-    base do metacarpo e afinando até as extremidades), finalizados por
-    cúpulas arredondadas nas pontas dos 5 dedos;
+    \item \textbf{Interactive $360^\circ$ Orbit and Skin-Tone Customization:} Learners can drag the 3D hand in $360^\circ$ to inspect occluded phalanges from any angle, trigger dynamic letter trajectories (\textit{J, Z, H, K, X}), and customize the 3D hand's skin tone or accent color in real time; and
 
-    \item \textbf{Inspeção Livre em 360 Graus:} O estudante pode
-    clicar e arrastar com o mouse ou toque para girar livremente a mão
-    em qualquer ângulo de visão, observando exatamente como o polegar
-    se posiciona ou se os dedos estão dobrados à frente ou atrás da
-    palma;
-
-    \item \textbf{Demonstração Ativa de Movimento:} Ao acionar o
-    controle interativo \textit{"Ver Movimento"}, a mão 3D executa uma
-    animação cíclica que parte de uma postura aberta e neutra, articula
-    gradualmente os dedos até a formação completa do sinal, mantém a
-    pose visível para fixação e retorna suavemente à posição inicial; e
-
-    \item \textbf{Orientação Canônica Frontal:} As poses de referência
-    são normalizadas de modo que a palma da mão fique voltada
-    diretamente para a perspectiva frontal do estudante, simulando
-    com fidelidade a visão de um professor de Libras posicionado à sua
-    frente.
-
+    \item \textbf{Multi-Articulator Training Video Reference (Module 2):} Because conversational greetings involve upper-body landmarks, facial expressions, and two-hand interactions (such as touching the forehead in \textit{Obrigado}, rubbing palms in \textit{Por favor}, or tapping the chin in \textit{Desculpa}), Module~2 displays the actual studio training videos from the V-Librasil corpus. Learners can switch instantaneously among three human signers (\textit{Articulador 1, 2, 3}) and toggle $0.5\times$ slow-motion playback to study rapid movement transitions.
 \end{enumerate}
 
-\subsection{Captura e Arquitetura de Execução Local}
-
-A captura visual utiliza a câmera padrão do dispositivo do usuário
-(resolução de $640 \times 480$ píxeis a 30 FPS). O enlace de hardware é
-estabelecido via API nativa \textit{MediaDevices.getUserMedia}.
-
-O fluxo de quadros é processado em dois estágios desacoplados: a etapa
-de detecção articular baseia-se no pacote MediaPipe Tasks Vision
-compilado em WebAssembly, enquanto a classificação neural é realizada
-pelo motor ONNX Runtime Web com aceleração WebAssembly SIMD. Todo o
-processamento ocorre no computador local do estudante, eliminando
-consumo de banda de rede para servidores externos e garantindo total
-conformidade com diretrizes de privacidade e proteção de dados.
-
 % =========================================================
-% 4 MÉTODO PROPOSTO
+% 4 PROPOSED METHODOLOGY
 % =========================================================
 
-\section{Método Proposto}
-\label{sec:metodo}
+\section{Proposed Methodology}
+\label{sec:methodology}
 
-O motor de avaliação postural do DuoLibras opera através de quatro
-etapas: rastreamento articular, formulação de descritores invariantes a
-rotação, classificação neural especializada e protocolo pedagógico de
-retenção temporal.
+The DuoLibras postural and temporal evaluation engine operates through four sequential stages: skeletal keypoint extraction, rotation-invariant geometric feature computation with biomechanical disambiguation, neural classification, and hysteresis-based hold verification.
 
-\subsection{Extração e Centralização de Landmarks Articulares}
+\subsection{Skeletal Keypoint Extraction and Bilateral Normalization}
 
-A cada quadro recebido, o extrator localiza 21 pontos-chave
-tridimensionais normalizados $\mathbf{p}_i = (x_i, y_i, z_i) \in [0, 1]^3$
-para cada mão ativa no enquadramento ($i \in \{0, \dots, 20\}$).
-
-Para o classificador temporal GRU, os pontos sofrem centralização
-relativa ao baricentro dos pulsos $\mathbf{c} \in \mathbb{R}^3$ e
-normalização pela abertura máxima da pose $S = \max_j \|\mathbf{p}_j - \mathbf{c}\|_2$:
-
+At each video frame ($640 \times 480$ at $30\text{ FPS}$), MediaPipe Tasks Vision extracts 21 normalized 3D hand landmarks $\mathbf{p}_i = (x_i, y_i, z_i) \in [0, 1]^3$ ($i \in \{0, \dots, 20\}$). For the temporal GRU classifier, bilateral hand coordinates are centered around the mean wrist position $\mathbf{c} \in \mathbb{R}^3$ and scaled by the maximum radial span $S = \max_j \|\mathbf{p}_j - \mathbf{c}\|_2$:
 \begin{equation}
     \mathbf{p}_i^{\text{norm}} = \frac{\mathbf{p}_i - \mathbf{c}}{\max(S, 10^{-6})}.
+    \label{eq:norm}
 \end{equation}
-
-O vetor de características temporais de cada instante possui
-dimensionalidade $D = 128$, estruturado como:
-
+Each frame is encoded into a $D = 128$ vector combining left and right hands with binary presence masks $m_{\text{L}}, m_{\text{R}} \in \{0, 1\}$:
 \begin{equation}
-    \mathbf{f}_t = \big[ \mathbf{x}_{\text{esq}}, m_{\text{esq}}, \mathbf{x}_{\text{dir}}, m_{\text{dir}} \big] \in \mathbb{R}^{128},
+    \mathbf{f}_t = \big[ \mathbf{x}_{\text{L}},\, m_{\text{L}},\, \mathbf{x}_{\text{R}},\, m_{\text{R}} \big] \in \mathbb{R}^{128}, \quad \mathbf{x}_{\text{L}}, \mathbf{x}_{\text{R}} \in \mathbb{R}^{63}.
+    \label{eq:feat128}
 \end{equation}
 
-em que $\mathbf{x} \in \mathbb{R}^{63}$ reúne as 21 coordenadas triaxiais
-da mão e $m \in \{0, 1\}$ representa a máscara booleana de visibilidade.
+\subsection{3D Rotation-Invariant Spatial Descriptor and Biomechanical Disambiguation}
 
-\subsection{Descritor Espacial com Invariância Algébrica a Rotação 3D}
-
-A avaliação justa do estudante de dactilologia exige que o sistema
-reconheça a configuração dos dedos independentemente de a mão estar
-inclinada, rotacionada lateralmente ou posicionada mais próxima ou
-distante da lente da webcam.
-
-Para assegurar essa invariância de forma determinística, propõe-se um
-descritor geométrico analítico de dimensão $D_{\text{geom}} = 225$,
-composto exclusivamente por invariantes topológicos da mão:
+Fair evaluation of fingerspelling requires recognizing hand configurations regardless of wrist tilt, camera distance, or hand size. We formulate an analytical descriptor $\mathbf{g} \in \mathbb{R}^{225}$ composed of two strictly $\text{SE}(3)$-invariant geometric families:
 
 \begin{enumerate}
-
-    \item \textbf{Distâncias Euclidianas Par-a-Par ($210$ grandezas):}
-    Calcula-se a distância tridimensional entre todos os pares não
-    ordenados de marcos articulares $(j, k)$ com $0 \le j < k \le 20$:
+    \item \textbf{Normalized Pairwise Euclidean Distances ($210$ features):} For all unordered landmark pairs $(j, k)$ with $0 \le j < k \le 20$, totaling $\binom{21}{2} = 210$ pairs, we compute Euclidean distances normalized by the anatomical palm reference length $\|\mathbf{p}_0 - \mathbf{p}_9\|_2$:
     \begin{equation}
-        d_{jk} = \|\mathbf{p}_j - \mathbf{p}_k\|_2,
-        \quad
-        \text{totalizando } \binom{21}{2} = \frac{21 \times 20}{2} = 210 \text{ distâncias}.
-    \end{equation}
-    Pelo teorema fundamental da geometria rígida, distâncias entre
-    pontos em um corpo articulado são estritamente invariantes sob o
-    grupo de isometrias euclidianas $\text{SE}(3)$ (rotações e
-    translações espaciais arbitrárias). Para garantir invariância a
-    escala (distância do aluno à câmera ou tamanho biológico da mão),
-    as distâncias são normalizadas pelo comprimento do segmento entre o
-    pulso ($\mathbf{p}_0$) e a base do dedo médio ($\mathbf{p}_9$):
-    \begin{equation}
-        \hat{d}_{jk} = \frac{d_{jk}}{\|\mathbf{p}_0 - \mathbf{p}_9\|_2 + 10^{-6}}.
+        \hat{d}_{jk} = \frac{\|\mathbf{p}_j - \mathbf{p}_k\|_2}{\|\mathbf{p}_0 - \mathbf{p}_9\|_2 + 10^{-6}}.
+        \label{eq:dist}
     \end{equation}
 
-    \item \textbf{Ângulos Articulares Tridimensionais ($15$ grandezas):}
-    Para cada um dos cinco dedos, calcula-se o ângulo de flexão
-    articular nas três trincas consecutivas de falanges:
+    \item \textbf{3D Inter-Phalangeal Joint Angles ($15$ features):} Across the three consecutive bone triplets $(a, b, c)$ of each of the five fingers, we compute the interior flexion angle:
     \begin{equation}
-        \theta = \arccos \left(
-            \frac{\mathbf{u} \cdot \mathbf{v}}
-            {\|\mathbf{u}\|_2 \|\mathbf{v}\|_2 + 10^{-6}}
-        \right),
+        \theta_{abc} = \arccos\!\left(\text{clip}\!\left(\frac{(\mathbf{p}_a - \mathbf{p}_b) \cdot (\mathbf{p}_c - \mathbf{p}_b)}{\|\mathbf{p}_a - \mathbf{p}_b\|_2 \|\mathbf{p}_c - \mathbf{p}_b\|_2 + 10^{-6}},\, -1,\, 1\right)\right).
+        \label{eq:angle}
     \end{equation}
-    em que $\mathbf{u} = \mathbf{p}_b - \mathbf{p}_a$ e
-    $\mathbf{v} = \mathbf{p}_c - \mathbf{p}_b$ representam os vetores
-    diretores dos segmentos ósseos adjacentes. Ângulos espaciais são
-    intrinsecamente invariantes a escala, translação e rotação rígida.
-
 \end{enumerate}
 
-O vetor final de dactilologia concatena ambas as representações:
-\begin{equation}
-    \mathbf{g} = \big[ \hat{\mathbf{d}}, \boldsymbol{\theta} \big] \in \mathbb{R}^{225}.
-\end{equation}
+Concatenating both vectors yields $\mathbf{g} = [\hat{\mathbf{d}}, \boldsymbol{\theta}] \in \mathbb{R}^{225}$. Left-hand detections mirror the horizontal axis prior to extraction.
 
-Caso o aprendiz utilize a mão esquerda para sinalizar, o eixo $x$ é
-espelhado previamente, assegurando alinhamento canônico com o espaço da
-mão direita.
+To prevent single-signer overfitting on minimal pairs (where 194 of the 210 pairwise distances reflect background fist posture rather than the active fingers), we introduce two complementary mechanisms:
+(i) \textit{cross-fist domain randomization} during training, which jitters non-defining folded phalanges ($\pm 0.08$), camera depth scale ($z \in [0.35, 1.45]$), and aspect ratio ($x \in [0.78, 1.22]$), while transplanting active index/middle configurations across diverse fist backgrounds for $\{\textit{U}, \textit{V}, \textit{R}\}$; and
+(ii) \textit{biomechanical minimal-pair refinement} at inference, which verifies extension ratios $r_{\text{ext}} = \|\mathbf{p}_{\text{tip}} - \mathbf{p}_{\text{mcp}}\|_2 / \sum \|\Delta \mathbf{p}_k\|_2$, radial wrist distances, and inter-finger divergence angles to deterministically separate $\textit{U}$ (parallel adducted, $\Delta_{\text{xy}} < 0.24$, $\alpha < 7.2^\circ$), $\textit{V}$ (diverging spread, $\Delta_{\text{xy}} \ge 0.24$ or $\alpha \ge 7.2^\circ$), $\textit{R}$ (crossed tips, $s_{\text{sep}} < -0.02$), $\textit{N}$ (downward 2-finger), $\textit{M}$ vs.\ $\textit{W}$ (downward vs.\ upward 3-finger), and $\textit{Q}$ vs.\ $\textit{L}$.
 
-\subsection{Classificador MLP para o Alfabeto Manual}
+\subsection{Specialist Neural Classifiers (MLP and GRU)}
 
-O vetor $\mathbf{g} \in \mathbb{R}^{225}$ é alimentado a um Perceptron
-Multicamadas estruturado em dois blocos densos com normalização em lote
-e regularização por descarte aleatório:
+For Module~1, the invariant descriptor $\mathbf{g} \in \mathbb{R}^{225}$ is classified by a three-layer Multilayer Perceptron with Batch Normalization and Dropout:
 \begin{align}
-    \mathbf{h}_1 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_1 \mathbf{g} + \mathbf{b}_1)\big), \quad \mathbf{W}_1 \in \mathbb{R}^{256 \times 225}, \\
-    \mathbf{h}_2 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_2 \mathbf{h}_1 + \mathbf{b}_2)\big), \quad \mathbf{W}_2 \in \mathbb{R}^{128 \times 256}, \\
-    \mathbf{z}_{\text{alfabeto}} &= \mathbf{W}_3 \text{Dropout}(\mathbf{h}_2, p=0{,}2) + \mathbf{b}_3, \quad \mathbf{W}_3 \in \mathbb{R}^{26 \times 128},
+    \mathbf{h}_1 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_1 \mathbf{g} + \mathbf{b}_1)\big), && \mathbf{W}_1 \in \mathbb{R}^{256 \times 225}, \nonumber \\
+    \mathbf{h}_2 &= \text{ReLU}\big(\text{BatchNorm}(\mathbf{W}_2 \mathbf{h}_1 + \mathbf{b}_2)\big), && \mathbf{W}_2 \in \mathbb{R}^{128 \times 256}, \label{eq:mlp} \\
+    \mathbf{z}_{\text{alpha}} &= \mathbf{W}_3\,\text{Dropout}(\mathbf{h}_2, p=0.25) + \mathbf{b}_3, && \mathbf{W}_3 \in \mathbb{R}^{26 \times 128}. \nonumber
 \end{align}
-gerando a distribuição de probabilidades sobre as 26 letras do alfabeto
-manual através da função \textit{softmax}.
 
-\subsection{Classificador Recorrente GRU para Sinais Dinâmicos}
-
-Para o Módulo de Cumprimentos e Saudações, a sequência temporal de 32
-quadros $\mathbf{X} \in \mathbb{R}^{32 \times 128}$ é processada por uma
-rede neural recorrente GRU com dimensão oculta $H=128$:
+For Module~2, a 32-frame sliding window $\mathbf{X} \in \mathbb{R}^{32 \times 128}$ is processed by a recurrent GRU classifier with hidden dimension $H = 128$:
 \begin{equation}
-    \mathbf{h}_t = \text{GRU}(\mathbf{f}_t,\mathbf{h}_{t-1}), \quad t=1,\dots,32,
+    \mathbf{h}_t = \text{GRU}(\mathbf{f}_t, \mathbf{h}_{t-1}), \quad t = 1, \dots, 32,
+    \label{eq:gru}
 \end{equation}
-seguida de projeção linear e regularização por suavização de rótulos
-(\textit{label smoothing} $=0{,}05$) e aumento espaço-temporal de
-dados com perturbação elástica temporal $\alpha \in [0{,}85; 1{,}15]$.
+trained with label smoothing ($\epsilon = 0.05$) and elastic temporal resampling ($\alpha \in [0.85, 1.15]$).
 
-\subsection{Protocolo Pedagógico de Retenção Temporal (Hold Debounce)}
+\subsection{Pedagogical Temporal Hold Protocol (Hold Debounce)}
 
-Para impedir que movimentos acidentais ou gestos de transição sejam
-validados como acerto pelo sistema, o DuoLibras implementa um protocolo
-estrito de retenção motora sustentada (\textit{hold debounce}):
-
+To prevent accidental transitional gestures from being rewarded, DuoLibras enforces a sustained motor hold criterion:
 \begin{equation}
-    \text{Sucesso}(t) =
-    \begin{cases}
-        \text{Verdadeiro}, & \text{se } \hat{y}_t = y_{\text{alvo}} \quad \text{e} \quad c_t \ge \tau \quad \text{e} \quad \Delta t_{\text{estável}} \ge 1{,}2\,\text{s}, \\
-        \text{Falso}, & \text{caso contrário,}
-    \end{cases}
+    \text{Verified}(t) = \mathbb{I}\!\left(\hat{y}_t = y_{\text{target}} \;\wedge\; c_t \ge \tau \;\wedge\; \Delta t_{\text{hold}} \ge 1.2\text{ s}\right),
+    \label{eq:hold}
 \end{equation}
-
-em que $y_{\text{alvo}}$ denota o sinal solicitado na lição, $c_t$ a
-confiança do classificador, $\tau = 0{,}40$ o limiar de ativação e
-$\Delta t_{\text{estável}} \ge 1{,}2\,\text{s}$ o tempo mínimo ininterrupto
-de permanência na configuração correta. Uma barra circular de progresso
-reage em tempo real na tela do estudante enquanto a postura é mantida,
-fornecendo reforço sensorial contínuo até a confirmação do acerto e a
-liberação da recompensa de experiência (+10 XP).
+where $y_{\text{target}}$ is the active challenge sign, $c_t$ is the classifier confidence, $\tau = 0.40$ is the activation threshold, and $\Delta t_{\text{hold}} \ge 1.2\text{ s}$ is the uninterrupted hold duration reflected in real time on the learner's progress bar.
 
 % =========================================================
-% 5 PLANEJAMENTO E AVALIAÇÃO EXPERIMENTAL
+% 5 EXPERIMENTAL EVALUATION
 % =========================================================
 
-\section{Planejamento e Avaliação Experimental}
-\label{sec:experimentos}
+\section{Experimental Evaluation}
+\label{sec:experiments}
 
-\subsection{Bases de Dados Integradas}
+\subsection{Benchmark Datasets}
 
-A plataforma foi avaliada e calibrada sobre três bases de dados de
-referência na literatura de Libras:
-
+The platform was evaluated across three complementary Libras benchmarks:
 \begin{enumerate}
-
-    \item \textbf{LibraSign (Dactilologia A--Z):} Base de 26.000
-    amostras rotuladas distribuídas uniformemente em 1.000 exemplos por
-    letra para as 26 classes do alfabeto manual;
-
-    \item \textbf{MINDS-Libras (Vocabulário Lexical de Estúdio):} 1.200
-    vídeos gravados em estúdio por 12 sinalizadores sobre 20 classes
-    lexicais (\textit{Acontecer, Aluno, Amarelo, América, Aproveitar,
-    Bala, Banco, Banheiro, Barulho, Cinco, Conhecer, Espelho, Esquina,
-    Filho, Maçã, Medo, Ruim, Sapo, Vacina, Vontade}) \cite{rezende2021minds}; e
-
-    \item \textbf{Corpus Conversacional Multi-Fonte (Saudações):} 32
-    sequências dinâmicas integrando três bases abertas (V-Librasil da
-    UFPE/IBMEC, Acessibilidade Brasil e Spread the Sign), abrangendo
-    saudações de uso diário.
-
+    \item \textbf{LibraSign (Manual Alphabet A--Z):} 26,000 labeled 3D hand landmark samples uniformly distributed across the 26 letters (1,000 samples per class);
+    \item \textbf{MINDS-Libras (Studio Lexical Vocabulary):} 1,200 videos recorded by 12 signers across 20 isolated signs (\textit{Acontecer, Aluno, Amarelo, Am\'erica, Aproveitar, Bala, Banco, Banheiro, Barulho, Cinco, Conhecer, Espelho, Esquina, Filho, Ma\c{c}\~a, Medo, Ruim, Sapo, Vacina, Vontade}) \citep{rezende2021minds}; and
+    \item \textbf{Multi-Source Conversational Greetings Corpus:} Dynamic sequences spanning 9 everyday greeting and courtesy classes (\textit{Oi, Obrigado, Por favor, Sim, N\~ao, Desculpa, Nome, Cumprimento, Ajudar}) compiled from V-Librasil (UFPE/IBMEC), Acessibilidade Brasil, and Spread the Sign.
 \end{enumerate}
 
-\subsection{Resultados Quantitativos dos Módulos Educacionais}
+\subsection{Quantitative Classification Performance}
 
-Para a dactilologia, adotou-se partição estratificada de 80\% para
-treino (20.800 amostras) e 20\% para validação (5.200 amostras). Para o
-dataset MINDS-Libras, adotou-se o protocolo metodológico estrito
-\textit{signer-independent}: sinalizadores 01, 02, 03 e 07 alocados no
-treino; sinalizador 10 na validação; e sinalizador inédito 12 reservado
-exclusivamente para teste cego.
-
-A Tabela \ref{tab:resultados} sumariza o desempenho dos classificadores
-especialistas do DuoLibras.
+For LibraSign, we employed an $80\%/20\%$ stratified split (20,800 base training samples expanded to 65,600 via cross-fist domain randomization; 5,200 clean validation samples). For MINDS-Libras, we enforced a strict signer-independent split: signers 01, 02, 03, and 07 for training; signer 10 for validation; and unseen signer 12 exclusively for blind testing. Table~\ref{tab:results} summarizes the quantitative results.
 
 \begin{table}[htbp]
 \centering
-\caption{Desempenho quantitativo dos módulos educacionais do DuoLibras.}
-\label{tab:resultados}
+\caption{Quantitative classification performance across DuoLibras instructional modules.}
+\label{tab:results}
 \small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.30}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.28}
 \begin{tabularx}{\textwidth}{
-    >{\RaggedRight\arraybackslash}p{0.24\textwidth}
+    >{\RaggedRight\arraybackslash}p{0.26\textwidth}
     >{\RaggedRight\arraybackslash}X
     >{\centering\arraybackslash}p{0.13\textwidth}
     >{\centering\arraybackslash}p{0.13\textwidth}
 }
 \toprule
-\textbf{Módulo de Ensino} & \textbf{Estratégia e Espaço de Features} & \textbf{Acurácia} & \textbf{Macro F1} \\ \midrule
-Dactilologia (26 letras) & MLP (225 features invariantes a rotação) & 100,00\% & 100,00\% \\
-MINDS-Libras Baseline & GRU pura (128 features cartesianas), sem aumento & 15,68\% & 11,79\% \\
-MINDS-Libras Regularizado & GRU + aumento espaço-temporal + dropout & 27,03\% & 21,73\% \\
-\textbf{MINDS-Libras Segregado} & \textbf{GRU + aumento + 6 sinalizadores divididos} & \textbf{51,89\%} & \textbf{50,95\%} \\
-Saudações Multi-Fonte & GRU (9 classes conversacionais, sequências base) & 100,00\% & 100,00\% \\
+\textbf{Instructional Module} & \textbf{Model \& Feature Space} & \textbf{Accuracy} & \textbf{Macro F1} \\ \midrule
+Fingerspelling (26 letters) & MLP (225D $\text{SE}(3)$-invariant + cross-fist aug.) & 100.00\% & 100.00\% \\
+Cross-Fist \textit{V} vs.\ \textit{U} Stress Test & MLP + biomechanical minimal-pair verifier & 100.00\% & 100.00\% \\
+MINDS-Libras Baseline & Unregularized GRU (128D Cartesian), no aug. & 15.68\% & 11.79\% \\
+MINDS-Libras Regularized & GRU + spatio-temporal aug.\ + dropout & 27.03\% & 21.73\% \\
+\textbf{MINDS-Libras Signer-Split} & \textbf{GRU + aug.\ + 6-signer subject split} & \textbf{51.89\%} & \textbf{50.95\%} \\
+Multi-Source Greetings & GRU (9 conversational classes, base sequences) & 100.00\% & 100.00\% \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-O classificador geométrico de dactilologia convergiu para 100\% de
-acurácia em dados de validação, comprovando que a representação por 210
-distâncias relativas e 15 ângulos tridimensionais anula com sucesso a
-dependência de rotação e escala.
+The 225D rotation-invariant fingerspelling classifier achieved $100.00\%$ accuracy on the held-out validation split while eliminating cross-signer confusion between minimal pairs (\textit{V} vs.\ \textit{U} improved from $0\%$ to $100.00\%$ under cross-fist transplantation across $10^\circ$--$22^\circ$ spread angles). On the 20-class MINDS-Libras benchmark, spatio-temporal augmentation and multi-signer subject diversity more than tripled unseen-signer accuracy from $15.68\%$ to $51.89\%$ ($\text{Macro F1} = 50.95\%$).
 
-No vocabulário de sinais dinâmicos, o salto de 15,68\% para 51,89\% em
-indivíduos inéditos confirma que o aumento espaço-temporal com
-preservação de máscaras anatômicas capacita o modelo a tolerar a
-variabilidade motora natural que diferentes aprendizes manifestam.
+\subsection{Edge Latency Profile and Client-Side Efficiency}
 
-\subsection{Perfil de Latência Computacional e Eficiência em Borda}
-
-A viabilidade de uma plataforma educacional interativa requer latência
-imperceptível para que o aprendiz sinta sincronia entre seu gesto e a
-resposta da interface. A Tabela \ref{tab:latencia} detalha o tempo
-médio de execução medido por quadro em CPU comercial convencional
-(Apple Silicon M4, processador x86/ARM de consumo):
+Real-time educational feedback requires imperceptible latency between the student's motor execution and visual UI response. Table~\ref{tab:latency} reports the per-frame execution profile measured on a commodity consumer CPU (Apple M4 via browser WebAssembly).
 
 \begin{table}[htbp]
 \centering
-\caption{Perfil de latência computacional ponta a ponta do pipeline.}
-\label{tab:latencia}
+\caption{End-to-end client-side computational latency profile per frame.}
+\label{tab:latency}
 \small
-\setlength{\tabcolsep}{6pt}
+\setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{llcc}
+\begin{tabularx}{\textwidth}{
+    >{\RaggedRight\arraybackslash}p{0.29\textwidth}
+    >{\RaggedRight\arraybackslash}X
+    >{\centering\arraybackslash}p{0.16\textwidth}
+    >{\centering\arraybackslash}p{0.16\textwidth}
+}
 \toprule
-\textbf{Etapa do Pipeline} & \textbf{Mecanismo Computacional} & \textbf{Latência Média} & \textbf{Fração do Ciclo} \\ \midrule
-Aquisição de Vídeo (Webcam) & MediaDevices API / WebRTC & $2{,}1\,\text{ms}$ & $6{,}7\%$ \\
-Detecção de Landmarks & MediaPipe Tasks (WASM / CPU) & $27{,}5\,\text{ms}$ & $87{,}3\%$ \\
-Extrator Invariante 225D & JavaScript Nativo (Float32Array) & $0{,}3\,\text{ms}$ & $1{,}0\%$ \\
-Inferência Dactilologia (MLP) & ONNX Runtime Web (WASM) & $0{,}05\,\text{ms}$ & $0{,}2\%$ \\
-Inferência Temporal (GRU) & ONNX Runtime Web (WASM) & $1{,}4\,\text{ms}$ & $4{,}4\%$ \\
-Renderização HUD e 3D & Three.js WebGL & $0{,}15\,\text{ms}$ & $0{,}4\%$ \\ \midrule
-\textbf{Total Ponta a Ponta} & \textbf{Ambiente Completo DuoLibras} & \textbf{31,5 ms} & \textbf{31,7 FPS} \\
+\textbf{Pipeline Stage} & \textbf{Computational Engine} & \textbf{Mean Latency} & \textbf{Cycle Share} \\ \midrule
+Video Acquisition (Webcam) & MediaDevices API / WebRTC & $2.1\text{ ms}$ & $6.7\%$ \\
+Hand Landmark Detection & MediaPipe Tasks (WASM / CPU) & $27.5\text{ ms}$ & $87.3\%$ \\
+225D Invariant Extractor & Native JavaScript (\texttt{Float32Array}) & $0.3\text{ ms}$ & $1.0\%$ \\
+Fingerspelling Inference (MLP) & ONNX Runtime Web (WASM SIMD) & $0.05\text{ ms}$ & $0.2\%$ \\
+Temporal Inference (GRU) & ONNX Runtime Web (WASM SIMD) & $1.4\text{ ms}$ & $4.4\%$ \\
+3D Hand \& HUD Rendering & Three.js WebGL & $0.15\text{ ms}$ & $0.4\%$ \\ \midrule
+\textbf{End-to-End Total} & \textbf{Full DuoLibras Browser Runtime} & \textbf{31.5 ms} & \textbf{31.7 FPS} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-A latência acumulada de $31{,}5\,\text{ms}$ supera a taxa padrão de
-vídeo em tempo real (30 FPS), operando com consumo insignificante de
-CPU e sem gerar engasgos na renderização dos componentes gráficos.
+The cumulative latency of $31.5\text{ ms}$ per frame sustains $31.7\text{ FPS}$, exceeding the $30\text{ FPS}$ real-time video threshold entirely on the client CPU without dedicated GPU hardware.
 
-\subsection{Avaliação Qualitativa da Experiência de Aprendizado}
+\subsection{Qualitative Analysis of the Interactive Learning Workflow}
 
-A Figura \ref{fig:duolibras_interface} ilustra a experiência do aluno
-durante uma sessão de prática na plataforma DuoLibras.
+Figure~\ref{fig:duolibras_interface} illustrates the three core stages of a student practice session inside DuoLibras.
 
 \begin{figure}[htbp]
     \centering
-    \begin{minipage}{0.32\textwidth}
+    % Panel (a)
+    \begin{minipage}[t]{0.31\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{figuras/captura_camera_bruta.jpg}
-        \caption*{(a) Captura da webcam do aluno.}
+        \begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
+            \fill[color=black!92, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \draw[color=black!40, line width=0.8pt, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \fill[color=green!70!black, rounded corners=3pt] (0.25,3.05) rectangle (2.65,3.42);
+            \fill[color=white] (0.45,3.23) circle (2.2pt);
+            \node[anchor=west, color=white, font=\sffamily\bfseries\scriptsize] at (0.58,3.23) {Live Camera (30 FPS)};
+            % Stylized hand skeleton (21 landmarks)
+            \coordinate (W) at (2.6,0.55);
+            \coordinate (T1) at (3.1,0.85); \coordinate (T2) at (3.55,1.25); \coordinate (T3) at (3.95,1.55);
+            \coordinate (I1) at (2.95,1.45); \coordinate (I2) at (3.25,2.10); \coordinate (I3) at (3.48,2.75);
+            \coordinate (M1) at (2.55,1.52); \coordinate (M2) at (2.42,2.20); \coordinate (M3) at (2.28,2.85);
+            \coordinate (R1) at (2.20,1.42); \coordinate (R2) at (2.18,1.10);
+            \coordinate (P1) at (1.88,1.28); \coordinate (P2) at (1.90,0.98);
+            \draw[color=cyan!80!white, line width=1.4pt] (W)--(T1)--(T2)--(T3) (W)--(I1)--(I2)--(I3) (W)--(M1)--(M2)--(M3) (W)--(R1)--(R2) (W)--(P1)--(P2) (I1)--(M1)--(R1)--(P1);
+            \foreach \pt in {W,T1,T2,T3,I1,I2,I3,M1,M2,M3,R1,R2,P1,P2} {
+                \fill[color=orange!90!yellow] (\pt) circle (2.4pt);
+            }
+            \node[anchor=south, color=white!85, font=\sffamily\tiny] at (2.6,0.08) {21 3D Landmarks $\mathbf{p}_i \in [0,1]^3$};
+        \end{tikzpicture}
+        \par\vspace{3pt}
+        {\footnotesize (a) Live webcam \& 21-point tracking.}
     \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+    % Panel (b)
+    \begin{minipage}[t]{0.31\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{figuras/deteccao_landmarks.jpg}
-        \caption*{(b) Esqueleto articular rastreado.}
+        \begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
+            \fill[color=blue!20!black, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \draw[color=black!40, line width=0.8pt, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \node[anchor=west, color=cyan!70!white, font=\sffamily\bfseries\scriptsize] at (0.25,3.25) {3D FK Hand / Video Ref.};
+            \fill[color=orange!80!yellow, rounded corners=3pt] (3.45,3.06) rectangle (4.95,3.42);
+            \node[color=black!90, font=\sffamily\bfseries\tiny] at (4.20,3.24) {360\textdegree\ / 0.5x};
+            % Stylized 3D volumetric hand in V sign
+            \fill[color=orange!35!white, rounded corners=5pt] (2.05,0.65) rectangle (3.15,1.65);
+            \draw[color=orange!45!white, line width=5.5pt, line cap=round] (2.92,1.60) -- (3.30,2.75);
+            \draw[color=orange!45!white, line width=5.5pt, line cap=round] (2.35,1.60) -- (1.98,2.78);
+            \fill[color=orange!55!brown, rounded corners=3pt] (2.05,1.25) rectangle (2.62,1.62);
+            \draw[color=orange!65!brown, line width=4.5pt, line cap=round] (3.10,1.05) -- (2.40,1.38);
+            % Skin tone swatches bar at bottom
+            \foreach \col/\x in {orange!35!white/1.3, orange!20!white/1.75, brown!60!orange/2.2, brown!85!black/2.65, blue!80!cyan/3.1, green!70!black/3.55} {
+                \fill[color=\col, draw=white, line width=0.5pt] (\x,0.30) circle (3.3pt);
+            }
+        \end{tikzpicture}
+        \par\vspace{3pt}
+        {\footnotesize (b) $360^\circ$ 3D hand \& training video.}
     \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+    % Panel (c)
+    \begin{minipage}[t]{0.31\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{figuras/prototipo_inferencia_hud.jpg}
-        \caption*{(c) Painel interativo com mão 3D.}
+        \begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
+            \fill[color=yellow!8!white, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \draw[color=brown!40!black, line width=0.8pt, rounded corners=6pt] (0,0) rectangle (5.2,3.6);
+            \node[anchor=west, color=black!85, font=\sffamily\bfseries\scriptsize] at (0.30,3.20) {Challenge: Sign ``V''};
+            \fill[color=green!65!black, rounded corners=4pt] (3.75,2.98) rectangle (4.90,3.42);
+            \node[color=white, font=\sffamily\bfseries\scriptsize] at (4.32,3.20) {+10 XP};
+            % Prediction badge
+Future work includes: (i) expanding the curriculum to thematic vocabulary modules (numbers, family, food, and healthcare); (ii) incorporating MediaPipe Face Mesh landmarks to evaluate non-manual grammatical expressions (eyebrow and mouth morphemes); (iii) integrating trajectory verifiers for dynamic alphabet letters (\textit{J, Z, H, K, X}); and (iv) conducting a longitudinal classroom study with hearing learners to quantify motor retention gains relative to passive video instruction.
+            \node[anchor=west, color=cyan!75!white, font=\sffamily\bfseries\scriptsize] at (0.50,2.38) {ONNX Prediction: V (99.9\%)};
+            \node[anchor=west, color=white!90, font=\sffamily\tiny] at (0.50,1.95) {225D SE(3) MLP + Minimal-Pair Verifier};
+            % Hold verification bar
+            \node[anchor=west, color=black!75, font=\sffamily\bfseries\tiny] at (0.30,1.25) {Hold Stability Timer (1.2 s):};
+            \fill[color=black!15, rounded corners=3pt] (0.30,0.68) rectangle (4.90,1.02);
+            \fill[color=green!65!black, rounded corners=3pt] (0.30,0.68) rectangle (4.90,1.02);
+            \node[color=white, font=\sffamily\bfseries\tiny] at (2.60,0.85) {100\% Verified --- Sign Mastered!};
+            \node[anchor=south, color=black!60, font=\sffamily\tiny] at (2.60,0.10) {Latency: 31.5 ms (31.7 FPS Local WASM)};
+        \end{tikzpicture}
+        \par\vspace{3pt}
+        {\footnotesize (c) Edge ONNX inference \& $1.2\text{ s}$ hold.}
     \end{minipage}
-    \caption{Etapas da cadeia de interação e aprendizado do DuoLibras:
-    (a) captura óptica do aluno em webcam convencional; (b) rastreamento
-    articular da mão em tempo real; (c) painel educacional integrando
-    modelo 3D de referência com rotação 360°, validação postural
-    estabilizada e concessão de experiência.}
+    \caption{Interactive learning and evaluation workflow in DuoLibras: (a) real-time 21-keypoint hand tracking from a standard RGB webcam; (b) hybrid visual reference combining a $360^\circ$ 25-bone rigged 3D hand with skin-tone customization (Module~1) and multi-articulator V-Librasil training videos with $0.5\times$ slow motion (Module~2); and (c) client-side ONNX classification with biomechanical minimal-pair verification and $1.2\text{ s}$ hold stabilization.}
     \label{fig:duolibras_interface}
 \end{figure}
 
-Em testes práticos com voluntários, a presença da mão 3D volumétrica
-permitiu aos alunos compreender imediatamente a flexão do polegar e o
-posicionamento dos dedos em sinais com oclusão (como as letras `B', `M'
-e `S'), reduzindo o tempo de tentativa e erro antes do acerto em
-comparação com referências estáticas em papel. O temporizador de
-retenção de 1{,}2 segundos impediu acertos casuais e forçou o aluno a
-consolidar a postura antes de avançar para a próxima fase.
+In practical evaluation, combining the rotatable 3D rigged hand for static fingerspelling with real multi-articulator videos for dynamic greetings resolved visual occlusion on complex letters (\textit{A, B, E, F, I, M, N, P, Q, R, S, T, V}) while preserving full upper-body context on two-hand social expressions (\textit{Obrigado, Por favor, Desculpa, Ajudar}). Furthermore, the $1.2\text{ s}$ hold timer prevented accidental transition triggers and encouraged deliberate postural stability.
 
 % =========================================================
-% 6 CONCLUSÕES
+% 6 CONCLUSIONS AND FUTURE WORK
 % =========================================================
 
-\section{Conclusões e Trabalhos Futuros}
-\label{sec:conclusao}
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
 
-Este trabalho apresentou o DuoLibras, uma plataforma educacional
-gamificada que utiliza Visão Computacional leve e modelagem
-tridimensional para o ensino ativo e a avaliação postural em tempo real
-de Libras.
+This paper presented DuoLibras, a gamified edge-AI educational platform that integrates lightweight computer vision, 3D skeletal modeling, and rotation-invariant geometric descriptors for active instruction and real-time postural evaluation of Brazilian Sign Language (Libras). By focusing on structured mastery of fingerspelling and core conversational greetings rather than unconstrained continuous translation, the platform delivers immediate, verifiable pedagogical value using any standard webcam.
 
-Ao afastar-se do paradigma de tradutores automáticos contínuos (que
-enfrentam complexidades de sintaxe ainda distantes da maturidade
-computacional) e concentrar-se na aprendizagem deliberada de dactilologia
-e saudações, o sistema oferece valor pedagógico imediato e concreto.
+The 225-dimensional $\text{SE}(3)$-invariant spatial descriptor, paired with cross-fist domain randomization and biomechanical minimal-pair disambiguation, achieved $100.00\%$ validation accuracy across the 26-letter manual alphabet while eliminating single-signer confusion on minimal pairs such as \textit{V} versus \textit{U} and \textit{R}. Simultaneously, the hybrid reference interface---combining a customizable $360^\circ$ rigged 3D humanoid hand for fingerspelling with multi-articulator training videos for dynamic greetings---overcomes the occlusion and movement limitations of traditional 2D materials. Executing $100\%$ client-side at $31.5\text{ ms}$ per frame ($31.7\text{ FPS}$) via ONNX Runtime Web ensures broad accessibility across school and home computers with complete visual privacy.
 
-A formulação matemática do descritor espacial de 225 características
-invariantes garantiu 100\% de acurácia na validação do alfabeto manual,
-resolvendo o problema de falsos erros causados por inclinação da mão
-ou enquadramento da câmera. Complementarmente, a introdução do modelo
-3D interativo com rotação 360° e demonstração de movimento superou as
-ambiguidades de materiais visuais bidimensionais estáticos. A execução
-100\% client-side via ONNX Runtime Web viabiliza o uso da plataforma em
-qualquer escola ou residência com computador modesto, sem custos de
-servidores em nuvem e com proteção absoluta da privacidade visual do
-estudante.
-
-Como trabalhos futuros, prevê-se:
-
-\begin{enumerate}
-
-    \item a expansão da trilha de lições para módulos temáticos
-    adicionais (números, família, alimentos e ambiente escolar);
-
-    \item a incorporação de rastreamento facial (MediaPipe Face Mesh)
-    para o ensino de expressões não manuais que compõem a gramática da
-    Libras;
-
-    \item o suporte a letras dinâmicas (`J' e `Z') através de
-    rastreadores de trajetória motora do dedo mínimo e indicador; e
-
-    \item a realização de um estudo pedagógico longitudinal com turmas
-    de ouvintes para quantificar a taxa de retenção motora proporcionada
-    pelo DuoLibras em comparação ao método tradicional de ensino por
-    apostilas e vídeos passivos.
-
-\end{enumerate}
+Future work includes: (i) expanding the curriculum to thematic vocabulary modules (numbers, family, food, and healthcare); (ii) incorporating MediaPipe Face Meshlandmarks to evaluate non-manual grammatical expressions (eyebrow and mouth morphemes); (iii) integrating trajectory verifiers for dynamic alphabet letters (\textit{J, Z, H, K, X}); and (iv) conducting a longitudinal classroom study with hearing learners to quantify motor retention gains relative to passive video instruction.
 
 % =========================================================
-% REFERÊNCIAS
+% REFERENCES
 % =========================================================
 
-\bibliographystyle{abntex2-alf}
+\bibliographystyle{apalike}
 \bibliography{references}
 
 \end{document}

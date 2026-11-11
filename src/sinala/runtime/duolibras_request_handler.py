@@ -48,14 +48,15 @@ class DuoLibrasRequestHandler(SimpleHTTPRequestHandler):
             if not rel_part or "/" in rel_part or "\\" in rel_part or rel_part in {".", ".."}:
                 return str(self.training_videos_dir / "__forbidden__")
 
-            candidate = self.training_videos_dir / rel_part
-            if candidate.is_symlink():
-                return str(self.training_videos_dir / "__forbidden__")
-
-            resolved = candidate.resolve()
-            if not resolved.is_relative_to(self.training_videos_dir):
-                return str(self.training_videos_dir / "__forbidden__")
-            return str(resolved)
+            static_dir = (Path(self.directory) / "training-videos").resolve() if getattr(self, "directory", None) else None
+            for base_dir in (d for d in (static_dir, self.training_videos_dir) if d is not None):
+                candidate = base_dir / rel_part
+                if candidate.is_symlink():
+                    return str(self.training_videos_dir / "__forbidden__")
+                resolved = candidate.resolve()
+                if resolved.is_relative_to(base_dir) and resolved.is_file():
+                    return str(resolved)
+            return str(self.training_videos_dir / "__forbidden__")
 
         return super().translate_path(path)
 

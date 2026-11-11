@@ -588,8 +588,12 @@ class DuoLibrasApp {
     const refVid = document.getElementById("greeting-ref-video");
     const badge = document.getElementById("greeting-video-badge");
     if (!refVid) return;
-    const fileName = `${targetSign}_Articulador${this.greetingSigner}.mp4`;
-    refVid.src = `training-videos/${encodeURIComponent(fileName)}`;
+    const slug = targetSign
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+    refVid.src = `training-videos/${slug}_${this.greetingSigner}.mp4`;
     refVid.playbackRate = this.greetingPlaybackRate;
     if (badge) {
       badge.textContent = `Articulador ${this.greetingSigner} · Dataset de Treinamento`;
